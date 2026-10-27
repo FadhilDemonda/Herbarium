@@ -1,0 +1,236 @@
+.backdrop {
+  position: fixed;
+  inset: 0;
+  background-color: var(--backdrop-bg);
+  z-index: 200;
+  display: flex;
+  justify-content: flex-end;
+  animation: fadeIn var(--transition-fast) ease-out;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.panel {
+  width: 100%;
+  max-width: 720px;
+  height: 100%;
+  background-color: var(--surface);
+  border-left: 1px solid var(--border);
+  box-shadow: var(--shadow-float);
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+  animation: slideLeft var(--transition-modal) ease-out;
+  position: relative;
+}
+
+@keyframes slideLeft {
+  from {
+    transform: translateX(100%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+
+.panelHeader {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  background-color: var(--surface);
+  border-bottom: 1px solid var(--border);
+  padding: var(--space-4) var(--space-6);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.closeBtn {
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radius-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background-color var(--transition-fast), color var(--transition-fast);
+}
+
+.closeBtn:hover {
+  background-color: var(--surface-2);
+  color: var(--text);
+}
+
+.panelBody {
+  padding: var(--space-6);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+  flex: 1;
+}
+
+.titleArea {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.detailTitle {
+  font-size: 1.5rem;
+  font-weight: 700;
+  line-height: 1.3;
+  color: var(--text);
+}
+
+.badgeRow {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.sqlContainer {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.sqlHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.sqlLabel {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.copyBtn {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  background-color: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text);
+  font-size: 0.8125rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color var(--transition-fast), border-color var(--transition-fast);
+}
+
+.copyBtn:hover {
+  border-color: var(--primary);
+}
+
+.copyBtnCopied {
+  background-color: var(--primary-soft);
+  color: var(--primary);
+  border-color: var(--primary);
+}
+
+.codeWrapper {
+  background-color: var(--sql-bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: var(--space-4);
+  overflow-x: auto;
+  display: flex;
+  font-family: var(--font-mono);
+  font-size: 0.8125rem;
+  line-height: 1.5rem;
+}
+
+.lineNumbers {
+  user-select: none;
+  text-align: right;
+  padding-right: var(--space-4);
+  color: var(--text-muted);
+  opacity: 0.5;
+  border-right: 1px solid var(--border);
+  margin-right: var(--space-4);
+}
+
+.codeContent {
+  flex: 1;
+  white-space: pre;
+}
+
+.metadataArea {
+  padding-top: var(--space-4);
+  border-top: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+.metaItem {
+  display: flex;
+  gap: var(--space-2);
+}
+
+.actionsArea {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--space-3);
+  padding: var(--space-4) var(--space-6);
+  border-top: 1px solid var(--border);
+  background-color: var(--surface);
+  position: sticky;
+  bottom: 0;
+}
+
+.secondaryBtn {
+  height: 40px;
+  padding: 0 var(--space-4);
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  color: var(--text);
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  cursor: pointer;
+  transition: background-color var(--transition-fast);
+}
+
+.secondaryBtn:hover {
+  background-color: var(--surface-2);
+}
+
+.dangerBtn {
+  height: 40px;
+  padding: 0 var(--space-4);
+  background: transparent;
+  border: 1px solid var(--danger);
+  border-radius: var(--radius-md);
+  color: var(--danger);
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  cursor: pointer;
+  transition: background-color var(--transition-fast);
+}
+
+.dangerBtn:hover {
+  background-color: rgba(168, 67, 47, 0.1);
+}

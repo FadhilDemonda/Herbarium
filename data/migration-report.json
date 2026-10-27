@@ -1,0 +1,56 @@
+{
+  "timestamp": "2026-10-27T01:21:51.470Z",
+  "sourceFile": "KODE & QUERY ANNISA.md",
+  "totalExtractedQueries": 20,
+  "categories": [
+    "Query Permintaan Dataset",
+    "Query Superset",
+    "Kategori"
+  ],
+  "duplicatesFound": [],
+  "unmappedBlocks": [
+    {
+      "rawTitle": "## **▶ \\-**",
+      "category": "Query Permintaan Dataset",
+      "reason": "Missing or placeholder title (-)"
+    },
+    {
+      "rawTitle": "## **▶ Kepatuhan RJ \\+ 6 Kategori**",
+      "title": "Kepatuhan RJ + 6 Kategori",
+      "category": "Query Superset",
+      "reason": "Empty SQL query content"
+    },
+    {
+      "rawTitle": "## **▼ Boxplot Waktu**",
+      "title": "Boxplot Waktu",
+      "category": "Query Superset",
+      "reason": "Content does not appear to be SQL (Dataset IGD Terbaru dan Pelayanan Rawat Inap...)"
+    },
+    {
+      "rawTitle": "## **▼ \\-**",
+      "category": "Query Superset",
+      "reason": "Missing or placeholder title (-)"
+    },
+    {
+      "rawTitle": "## **▶ \\-**",
+      "category": "Query Superset",
+      "reason": "Missing or placeholder title (-)"
+    },
+    {
+      "rawTitle": "## **▶ \\-**",
+      "category": "Kategori",
+      "reason": "Missing or placeholder title (-)"
+    },
+    {
+      "rawTitle": "## **▼ \\-**",
+      "category": "Kategori",
+      "reason": "Missing or placeholder title (-)"
+    },
+    {
+      "rawTitle": "## **▶ \\-**",
+      "category": "Kategori",
+      "reason": "Missing or placeholder title (-)"
+    }
+  ],
+  "status": "SUCCESS"
+}

@@ -1,0 +1,38 @@
+.categoryBadge {
+  display: inline-flex;
+  align-items: center;
+  background-color: var(--accent-soft);
+  color: var(--accent);
+  font-size: 0.75rem; /* 12px */
+  line-height: 1rem;
+  font-weight: 500;
+  padding: 2px 8px;
+  border-radius: var(--radius-full);
+  white-space: nowrap;
+}
+
+.typeBadgeQuery {
+  display: inline-flex;
+  align-items: center;
+  background-color: var(--surface-2);
+  color: var(--text-muted);
+  font-size: 0.75rem;
+  line-height: 1rem;
+  font-weight: 500;
+  padding: 2px 8px;
+  border-radius: var(--radius-full);
+  white-space: nowrap;
+}
+
+.typeBadgeDashboard {
+  display: inline-flex;
+  align-items: center;
+  background-color: var(--primary-soft);
+  color: var(--primary);
+  font-size: 0.75rem;
+  line-height: 1rem;
+  font-weight: 500;
+  padding: 2px 8px;
+  border-radius: var(--radius-full);
+  white-space: nowrap;
+}

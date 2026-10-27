@@ -1,0 +1,149 @@
+/* Herbarium Base Styles & Typography */
+@import './tokens.css';
+
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  font-size: 16px;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  background-color: var(--bg);
+  color: var(--text);
+  color-scheme: light dark;
+}
+
+body {
+  font-family: var(--font-ui);
+  font-size: 0.875rem; /* 14px */
+  line-height: 1.375rem; /* 22px */
+  font-weight: 400;
+  background-color: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  overflow-x: hidden;
+  transition: background-color var(--transition-fast), color var(--transition-fast);
+}
+
+/* Typography Headings */
+h1, .page-title {
+  font-size: 1.75rem; /* 28px */
+  line-height: 2.25rem; /* 36px */
+  font-weight: 600;
+  color: var(--text);
+  letter-spacing: -0.02em;
+}
+
+h2, .section-title {
+  font-size: 1.25rem; /* 20px */
+  line-height: 1.75rem; /* 28px */
+  font-weight: 600;
+  color: var(--text);
+  letter-spacing: -0.01em;
+}
+
+h3, .card-title {
+  font-size: 1rem; /* 16px */
+  line-height: 1.5rem; /* 24px */
+  font-weight: 600;
+  color: var(--text);
+}
+
+.caption, .metadata {
+  font-size: 0.75rem; /* 12px */
+  line-height: 1.125rem; /* 18px */
+  font-weight: 500;
+  color: var(--text-muted);
+}
+
+code, pre, kbd, samp, textarea.code-font {
+  font-family: var(--font-mono);
+  font-variant-ligatures: none;
+}
+
+button, input, select, textarea {
+  font-family: inherit;
+  font-size: inherit;
+  color: inherit;
+}
+
+/* Accessibility Focus States */
+:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+}
+
+button:focus:not(:focus-visible),
+input:focus:not(:focus-visible),
+select:focus:not(:focus-visible),
+textarea:focus:not(:focus-visible) {
+  outline: none;
+}
+
+/* Custom Scrollbars */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: var(--radius-full);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--text-muted);
+}
+
+/* SQL Code Block Syntax Highlighting (Prism tokens) */
+.prism-code,
+pre.sql-code-block code {
+  color: var(--sql-identifier);
+  background: transparent;
+  font-family: var(--font-mono);
+  font-size: 0.8125rem; /* 13px */
+  line-height: 1.3125rem; /* 21px */
+}
+
+.token.keyword {
+  color: var(--sql-keyword);
+  font-weight: 600;
+}
+
+.token.function {
+  color: var(--sql-function);
+}
+
+.token.string {
+  color: var(--sql-string);
+}
+
+.token.number {
+  color: var(--sql-number);
+}
+
+.token.comment {
+  color: var(--sql-comment);
+  font-style: italic;
+}
+
+.token.operator,
+.token.punctuation {
+  color: var(--sql-operator);
+}
+
+.token.boolean {
+  color: var(--sql-keyword);
+}
+
+/* Prevent layout shift during modal open */
+body.modal-open {
+  overflow: hidden;
+}
