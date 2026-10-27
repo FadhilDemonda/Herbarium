@@ -188,15 +188,8 @@ export async function login(username, password) {
   const cleanUsername = (username || '').trim().toLowerCase();
 
   if (!isGasConfigured()) {
-    // Demo/mock fallback login
-    if (cleanUsername === 'annisa' && password === 'rahasia123') {
-      const token = `mock_tok_${Date.now()}`;
-      const expiresAt = new Date(Date.now() + 6 * 3600 * 1000).toISOString();
-      setSession(token, cleanUsername, expiresAt);
-      return { token, username: cleanUsername, expiresAt };
-    }
-    const err = new Error('Username atau password salah (Demo: gunakan user "annisa" & password "rahasia123")');
-    err.code = 'INVALID_CREDENTIALS';
+    const err = new Error('Backend Google Apps Script belum terhubung. Harap tambahkan Environment Variable VITE_GAS_URL di pengaturan Netlify (Site configuration > Environment variables).');
+    err.code = 'NOT_CONFIGURED';
     throw err;
   }
 
