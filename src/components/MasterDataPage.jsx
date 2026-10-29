@@ -484,7 +484,7 @@ export function MasterDataPage({
                   menggunakan item ini. Jika dihapus, seluruh query tersebut
                   akan otomatis dialihkan ke{' '}
                   <strong>
-                    "{activeTab === 'categories' ? 'Lainnya' : 'Query'}"
+                    &quot;{activeTab === 'categories' ? 'Lainnya' : 'Query'}&quot;
                   </strong>
                   .
                 </div>

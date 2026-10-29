@@ -362,8 +362,13 @@ function handleCreate(body) {
     var catName = payload.category.trim();
     var typeName = payload.type.trim();
 
-    // Auto-register category & type to master sheets if not yet present
-    var masterChanged = autoRegisterMasterIfNeeded_(ss, catName, typeName, auth.username);
+    // Auto-register category & type to master sheets if not yet present (fail-safe)
+    var masterChanged = false;
+    try {
+      masterChanged = autoRegisterMasterIfNeeded_(ss, catName, typeName, auth.username);
+    } catch (e) {
+      Logger.log('Auto-register master warning on create: ' + e);
+    }
 
     var newRow = [];
     for (var c = 0; c < headers.length; c++) {
@@ -472,22 +477,30 @@ function handleUpdate(body) {
     var catName = payload.category.trim();
     var typeName = payload.type.trim();
 
-    // Auto-register category & type to master sheets if not yet present
-    var masterChanged = autoRegisterMasterIfNeeded_(ss, catName, typeName, auth.username);
+    // Auto-register category & type to master sheets if not yet present (fail-safe)
+    var masterChanged = false;
+    try {
+      masterChanged = autoRegisterMasterIfNeeded_(ss, catName, typeName, auth.username);
+    } catch (e) {
+      Logger.log('Auto-register master warning: ' + e);
+    }
 
     var now = new Date().toISOString();
-    var created_at = formatIso(values[targetRowIndex - 1][headerMap['created_at']]);
+    var targetRow = values[targetRowIndex - 1];
+    var created_at = formatIso(targetRow[headerMap['created_at']]);
 
-    sheet.getRange(targetRowIndex, headerMap['title'] + 1).setValue(payload.title.trim());
-    sheet.getRange(targetRowIndex, headerMap['category'] + 1).setValue(catName);
-    sheet.getRange(targetRowIndex, headerMap['type'] + 1).setValue(typeName);
+    targetRow[headerMap['title']] = payload.title.trim();
+    targetRow[headerMap['category']] = catName;
+    targetRow[headerMap['type']] = typeName;
+    targetRow[headerMap['sql_query']] = payload.sql_query;
+    targetRow[headerMap['updated_at']] = now;
+    targetRow[headerMap['updated_by']] = auth.username;
 
-    var sqlRange = sheet.getRange(targetRowIndex, headerMap['sql_query'] + 1);
-    sqlRange.setNumberFormat('@');
-    sqlRange.setValue(payload.sql_query);
+    // Batch update single row for optimal speed (<100ms)
+    sheet.getRange(targetRowIndex, 1, 1, headers.length).setValues([targetRow]);
 
-    sheet.getRange(targetRowIndex, headerMap['updated_at'] + 1).setValue(now);
-    sheet.getRange(targetRowIndex, headerMap['updated_by'] + 1).setValue(auth.username);
+    var sqlCol = headerMap['sql_query'] + 1;
+    sheet.getRange(targetRowIndex, sqlCol).setNumberFormat('@');
 
     // Invalidate caches
     CacheService.getScriptCache().remove('QUERIES_LIST_DATA');
@@ -1070,82 +1083,77 @@ function readMasterSheet_(ss, sheetName, defaultColor) {
  * Ensure master sheets exist and auto-seed if empty
  */
 function ensureMasterSheets_(ss) {
-  var catSheet = ss.getSheetByName(CONFIG.SHEET_CATEGORIES);
-  if (!catSheet) {
-    catSheet = ss.insertSheet(CONFIG.SHEET_CATEGORIES);
-    initMasterHeader(catSheet);
-  }
+  try {
+    var catSheet = ss.getSheetByName(CONFIG.SHEET_CATEGORIES);
+    if (!catSheet) {
+      catSheet = ss.insertSheet(CONFIG.SHEET_CATEGORIES);
+      initMasterHeader(catSheet);
+    }
 
-  var typSheet = ss.getSheetByName(CONFIG.SHEET_TYPES);
-  if (!typSheet) {
-    typSheet = ss.insertSheet(CONFIG.SHEET_TYPES);
-    initMasterHeader(typSheet);
-  }
+    var typSheet = ss.getSheetByName(CONFIG.SHEET_TYPES);
+    if (!typSheet) {
+      typSheet = ss.insertSheet(CONFIG.SHEET_TYPES);
+      initMasterHeader(typSheet);
+    }
 
-  var now = new Date().toISOString();
+    var now = new Date().toISOString();
 
-  // Auto-seed categories if empty
-  if (catSheet.getLastRow() <= 1) {
-    var querySheet = ss.getSheetByName(CONFIG.SHEET_QUERIES);
-    var existingCats = {};
+    // Auto-seed categories if empty
+    if (catSheet.getLastRow() <= 1) {
+      var querySheet = ss.getSheetByName(CONFIG.SHEET_QUERIES);
+      var existingCats = {};
 
-    if (querySheet && querySheet.getLastRow() > 1) {
-      var qValues = querySheet.getDataRange().getValues();
-      var qHeaders = qValues[0].map(function (h) { return String(h).trim(); });
-      var qMap = getHeaderMap(qHeaders);
-      if (qMap['category'] !== undefined) {
-        for (var q = 1; q < qValues.length; q++) {
-          var cName = String(qValues[q][qMap['category']] || '').trim();
-          if (cName) existingCats[cName] = true;
+      if (querySheet && querySheet.getLastRow() > 1) {
+        var qValues = querySheet.getDataRange().getValues();
+        if (qValues && qValues.length > 0) {
+          var qHeaders = qValues[0].map(function (h) { return String(h).trim(); });
+          var qMap = getHeaderMap(qHeaders);
+          if (qMap['category'] !== undefined) {
+            for (var q = 1; q < qValues.length; q++) {
+              var cName = String(qValues[q][qMap['category']] || '').trim();
+              if (cName) existingCats[cName] = true;
+            }
+          }
         }
+      }
+
+      var defaultCats = ['Query Permintaan Dataset', 'Query Superset', 'Lainnya'];
+      for (var d = 0; d < defaultCats.length; d++) {
+        existingCats[defaultCats[d]] = true;
+      }
+
+      var catNames = Object.keys(existingCats);
+      var order = 1;
+      var catRows = [];
+      for (var c = 0; c < catNames.length; c++) {
+        var name = catNames[c];
+        var color = name === 'Query Permintaan Dataset' ? 'terracotta' : (name === 'Query Superset' ? 'teal' : 'neutral');
+        catRows.push([
+          'cat_' + c.toString(36) + '_' + Math.random().toString(36).substring(2, 6),
+          name,
+          'Koleksi ' + name,
+          color,
+          order++,
+          now,
+          now,
+          'system'
+        ]);
+      }
+      if (catRows.length > 0) {
+        catSheet.getRange(2, 1, catRows.length, 8).setValues(catRows);
       }
     }
 
-    var defaultCats = ['Query Permintaan Dataset', 'Query Superset', 'Lainnya'];
-    for (var d = 0; d < defaultCats.length; d++) {
-      existingCats[defaultCats[d]] = true;
+    // Auto-seed types if empty
+    if (typSheet.getLastRow() <= 1) {
+      var typeRows = [
+        ['typ_query', 'Query', 'Query SQL standar / ad-hoc query', 'neutral', 1, now, now, 'system'],
+        ['typ_dashboard', 'Dashboard', 'Query untuk kartu metrik dan bagan dashboard Superset', 'forest', 2, now, now, 'system']
+      ];
+      typSheet.getRange(2, 1, typeRows.length, 8).setValues(typeRows);
     }
-
-    var catNames = Object.keys(existingCats);
-    var order = 1;
-    for (var c = 0; c < catNames.length; c++) {
-      var name = catNames[c];
-      var color = name === 'Query Permintaan Dataset' ? 'terracotta' : (name === 'Query Superset' ? 'teal' : 'neutral');
-      catSheet.appendRow([
-        'cat_' + c.toString(36) + '_' + Math.random().toString(36).substring(2, 6),
-        name,
-        'Koleksi ' + name,
-        color,
-        order++,
-        now,
-        now,
-        'system'
-      ]);
-    }
-  }
-
-  // Auto-seed types if empty
-  if (typSheet.getLastRow() <= 1) {
-    typSheet.appendRow([
-      'typ_query',
-      'Query',
-      'Query SQL standar / ad-hoc query',
-      'neutral',
-      1,
-      now,
-      now,
-      'system'
-    ]);
-    typSheet.appendRow([
-      'typ_dashboard',
-      'Dashboard',
-      'Query untuk kartu metrik dan bagan dashboard Superset',
-      'forest',
-      2,
-      now,
-      now,
-      'system'
-    ]);
+  } catch (err) {
+    Logger.log('ensureMasterSheets_ warning: ' + err);
   }
 }
 
@@ -1213,65 +1221,84 @@ function ensureFallbackMasterExists_(ss, entity, fallbackName) {
  * Auto-register category or type to master sheet if not yet present
  */
 function autoRegisterMasterIfNeeded_(ss, catName, typeName, username) {
-  ensureMasterSheets_(ss);
-  var changed = false;
-  var now = new Date().toISOString();
+  try {
+    ensureMasterSheets_(ss);
+    var changed = false;
+    var now = new Date().toISOString();
 
-  // Check category
-  if (catName) {
-    var catSheet = ss.getSheetByName(CONFIG.SHEET_CATEGORIES);
-    var catValues = catSheet.getDataRange().getValues();
-    var catMap = getHeaderMap(catValues[0].map(function (h) { return String(h).trim(); }));
-    var catExists = false;
-    for (var c = 1; c < catValues.length; c++) {
-      if (String(catValues[c][catMap['name']] || '').trim().toLowerCase() === catName.toLowerCase()) {
-        catExists = true;
-        break;
+    // Check category
+    if (catName) {
+      var catSheet = ss.getSheetByName(CONFIG.SHEET_CATEGORIES);
+      if (catSheet) {
+        var catValues = catSheet.getDataRange().getValues();
+        if (catValues && catValues.length > 0) {
+          var catMap = getHeaderMap(catValues[0].map(function (h) { return String(h).trim(); }));
+          var nameCol = catMap['name'];
+          if (nameCol !== undefined) {
+            var catExists = false;
+            for (var c = 1; c < catValues.length; c++) {
+              if (String(catValues[c][nameCol] || '').trim().toLowerCase() === catName.toLowerCase()) {
+                catExists = true;
+                break;
+              }
+            }
+            if (!catExists) {
+              catSheet.appendRow([
+                'cat_' + new Date().getTime().toString(36) + '_' + Math.random().toString(36).substring(2, 6),
+                catName,
+                '',
+                'terracotta',
+                catValues.length,
+                now,
+                now,
+                username || 'system'
+              ]);
+              changed = true;
+            }
+          }
+        }
       }
     }
-    if (!catExists) {
-      catSheet.appendRow([
-        'cat_' + new Date().getTime().toString(36) + '_' + Math.random().toString(36).substring(2, 6),
-        catName,
-        '',
-        'terracotta',
-        catValues.length,
-        now,
-        now,
-        username || 'system'
-      ]);
-      changed = true;
-    }
-  }
 
-  // Check type
-  if (typeName) {
-    var typSheet = ss.getSheetByName(CONFIG.SHEET_TYPES);
-    var typValues = typSheet.getDataRange().getValues();
-    var typMap = getHeaderMap(typValues[0].map(function (h) { return String(h).trim(); }));
-    var typExists = false;
-    for (var t = 1; t < typValues.length; t++) {
-      if (String(typValues[t][typMap['name']] || '').trim().toLowerCase() === typeName.toLowerCase()) {
-        typExists = true;
-        break;
+    // Check type
+    if (typeName) {
+      var typSheet = ss.getSheetByName(CONFIG.SHEET_TYPES);
+      if (typSheet) {
+        var typValues = typSheet.getDataRange().getValues();
+        if (typValues && typValues.length > 0) {
+          var typMap = getHeaderMap(typValues[0].map(function (h) { return String(h).trim(); }));
+          var tNameCol = typMap['name'];
+          if (tNameCol !== undefined) {
+            var typExists = false;
+            for (var t = 1; t < typValues.length; t++) {
+              if (String(typValues[t][tNameCol] || '').trim().toLowerCase() === typeName.toLowerCase()) {
+                typExists = true;
+                break;
+              }
+            }
+            if (!typExists) {
+              typSheet.appendRow([
+                'typ_' + new Date().getTime().toString(36) + '_' + Math.random().toString(36).substring(2, 6),
+                typeName,
+                '',
+                'neutral',
+                typValues.length,
+                now,
+                now,
+                username || 'system'
+              ]);
+              changed = true;
+            }
+          }
+        }
       }
     }
-    if (!typExists) {
-      typSheet.appendRow([
-        'typ_' + new Date().getTime().toString(36) + '_' + Math.random().toString(36).substring(2, 6),
-        typeName,
-        '',
-        'neutral',
-        typValues.length,
-        now,
-        now,
-        username || 'system'
-      ]);
-      changed = true;
-    }
-  }
 
-  return changed;
+    return changed;
+  } catch (err) {
+    Logger.log('autoRegisterMasterIfNeeded_ warning: ' + err);
+    return false;
+  }
 }
 
 // ============================================================================

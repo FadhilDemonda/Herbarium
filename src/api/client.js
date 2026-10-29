@@ -155,13 +155,14 @@ export function saveLocalTypes(types) {
 /**
  * Generic request sender to GAS Web App with timeout protection
  */
-async function sendGasRequest(method, url, body, timeoutMs = 15000) {
+async function sendGasRequest(method, url, body, timeoutMs = 30000) {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
 
   const options = {
     method,
     signal: controller.signal,
+    redirect: 'follow',
   };
 
   if (method === 'POST') {
