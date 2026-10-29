@@ -6,7 +6,7 @@ import { formatIndonesianDate } from '../lib/syntax';
 import { useToast } from './Toast';
 import styles from './TableView.module.css';
 
-export function TableView({ queries, onSelect }) {
+export function TableView({ queries, onSelect, categoryColorMap = {}, typeColorMap = {} }) {
   const [copiedId, setCopiedId] = useState(null);
   const { showToast } = useToast();
 
@@ -37,6 +37,9 @@ export function TableView({ queries, onSelect }) {
         <tbody>
           {queries.map((query) => {
             const isCopied = copiedId === query.id;
+            const catColor = categoryColorMap[(query.category || '').trim().toLowerCase()];
+            const typColor = typeColorMap[(query.type || '').trim().toLowerCase()];
+
             return (
               <tr
                 key={query.id}
@@ -56,10 +59,10 @@ export function TableView({ queries, onSelect }) {
                   {query.title}
                 </td>
                 <td className={styles.td}>
-                  <CategoryBadge category={query.category} />
+                  <CategoryBadge category={query.category} color={catColor} />
                 </td>
                 <td className={styles.td}>
-                  <TypeBadge type={query.type} />
+                  <TypeBadge type={query.type} color={typColor} />
                 </td>
                 <td className={`${styles.td} ${styles.dateCell}`}>
                   {formatIndonesianDate(query.updated_at)}

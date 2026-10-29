@@ -7,7 +7,7 @@ import { useToast } from './Toast';
 import { useAuth } from '../context/AuthContext';
 import styles from './QueryDetail.module.css';
 
-export function QueryDetail({ query, onClose, onEdit, onDelete }) {
+export function QueryDetail({ query, onClose, onEdit, onDelete, categoryColor, typeColor }) {
   const [copied, setCopied] = useState(false);
   const { showToast } = useToast();
   const { isLoggedIn } = useAuth();
@@ -69,8 +69,8 @@ export function QueryDetail({ query, onClose, onEdit, onDelete }) {
           <div className={styles.titleArea}>
             <h2 id="detail-title" className={styles.detailTitle}>{query.title}</h2>
             <div className={styles.badgeRow}>
-              <CategoryBadge category={query.category} />
-              <TypeBadge type={query.type} />
+              <CategoryBadge category={query.category} color={categoryColor} />
+              <TypeBadge type={query.type} color={typeColor} />
             </div>
           </div>
 
@@ -123,19 +123,19 @@ export function QueryDetail({ query, onClose, onEdit, onDelete }) {
           <div className={styles.actionsArea}>
             <button
               type="button"
-              className={styles.dangerBtn}
-              onClick={() => onDelete(query)}
-            >
-              <Trash2 size={16} />
-              <span>Hapus</span>
-            </button>
-            <button
-              type="button"
               className={styles.secondaryBtn}
               onClick={() => onEdit(query)}
             >
               <Edit2 size={16} />
               <span>Edit</span>
+            </button>
+            <button
+              type="button"
+              className={styles.dangerBtn}
+              onClick={() => onDelete(query)}
+            >
+              <Trash2 size={16} />
+              <span>Hapus</span>
             </button>
           </div>
         )}

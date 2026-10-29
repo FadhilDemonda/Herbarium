@@ -1,38 +1,73 @@
-.categoryBadge {
+.baseBadge {
   display: inline-flex;
   align-items: center;
-  background-color: var(--accent-soft);
-  color: var(--accent);
   font-size: 0.75rem; /* 12px */
   line-height: 1rem;
   font-weight: 500;
   padding: 2px 8px;
   border-radius: var(--radius-full);
   white-space: nowrap;
+  border: 1px solid transparent;
+  transition: background-color var(--transition-fast), color var(--transition-fast), border-color var(--transition-fast);
+}
+
+.color_terracotta {
+  background-color: var(--badge-terracotta-bg);
+  color: var(--badge-terracotta-text);
+  border-color: var(--badge-terracotta-border);
+}
+
+.color_forest {
+  background-color: var(--badge-forest-bg);
+  color: var(--badge-forest-text);
+  border-color: var(--badge-forest-border);
+}
+
+.color_teal {
+  background-color: var(--badge-teal-bg);
+  color: var(--badge-teal-text);
+  border-color: var(--badge-teal-border);
+}
+
+.color_amber {
+  background-color: var(--badge-amber-bg);
+  color: var(--badge-amber-text);
+  border-color: var(--badge-amber-border);
+}
+
+.color_berry {
+  background-color: var(--badge-berry-bg);
+  color: var(--badge-berry-text);
+  border-color: var(--badge-berry-border);
+}
+
+.color_slate {
+  background-color: var(--badge-slate-bg);
+  color: var(--badge-slate-text);
+  border-color: var(--badge-slate-border);
+}
+
+.color_neutral {
+  background-color: var(--badge-neutral-bg);
+  color: var(--badge-neutral-text);
+  border-color: var(--badge-neutral-border);
+}
+
+/* Backward compatibility classes */
+.categoryBadge {
+  background-color: var(--badge-terracotta-bg);
+  color: var(--badge-terracotta-text);
+  border-color: var(--badge-terracotta-border);
 }
 
 .typeBadgeQuery {
-  display: inline-flex;
-  align-items: center;
-  background-color: var(--surface-2);
-  color: var(--text-muted);
-  font-size: 0.75rem;
-  line-height: 1rem;
-  font-weight: 500;
-  padding: 2px 8px;
-  border-radius: var(--radius-full);
-  white-space: nowrap;
+  background-color: var(--badge-neutral-bg);
+  color: var(--badge-neutral-text);
+  border-color: var(--badge-neutral-border);
 }
 
 .typeBadgeDashboard {
-  display: inline-flex;
-  align-items: center;
-  background-color: var(--primary-soft);
-  color: var(--primary);
-  font-size: 0.75rem;
-  line-height: 1rem;
-  font-weight: 500;
-  padding: 2px 8px;
-  border-radius: var(--radius-full);
-  white-space: nowrap;
+  background-color: var(--badge-forest-bg);
+  color: var(--badge-forest-text);
+  border-color: var(--badge-forest-border);
 }

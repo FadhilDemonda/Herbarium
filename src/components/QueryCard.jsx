@@ -5,7 +5,7 @@ import { copyToClipboard } from '../lib/clipboard';
 import { useToast } from './Toast';
 import styles from './QueryCard.module.css';
 
-export function QueryCard({ query, onSelect }) {
+export function QueryCard({ query, onSelect, categoryColor, typeColor }) {
   const [copied, setCopied] = useState(false);
   const { showToast } = useToast();
 
@@ -39,8 +39,8 @@ export function QueryCard({ query, onSelect }) {
         <div>
           <h3 className={styles.cardTitle}>{query.title}</h3>
           <div className={styles.badgeRow}>
-            <CategoryBadge category={query.category} />
-            <TypeBadge type={query.type} />
+            <CategoryBadge category={query.category} color={categoryColor} />
+            <TypeBadge type={query.type} color={typeColor} />
           </div>
         </div>
 

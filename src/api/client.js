@@ -2,15 +2,17 @@
  * Herbarium API Client
  * Centralized API service for Google Apps Script Web App
  * Handles:
- * - Public list querying
+ * - Public list querying (queries & masters)
  * - Session storage management for auth tokens
  * - CORS-preflight avoidance using Content-Type: text/plain;charset=utf-8
  * - Standard envelope unwrapping { ok, data, error }
  * - UNAUTHORIZED event dispatcher
- * - Local fallback mode when GAS URL is not yet configured
+ * - Local fallback mode & instant cache hydration for queries, categories, and types
  */
 
 import initialSeedQueries from '../../data/queries.json';
+import initialSeedCategories from '../../data/categories.json';
+import initialSeedTypes from '../../data/types.json';
 
 const GAS_URL = import.meta.env.VITE_GAS_URL;
 
@@ -18,7 +20,9 @@ const STORAGE_KEYS = {
   TOKEN: 'herbarium_session_token',
   USERNAME: 'herbarium_session_username',
   EXPIRES_AT: 'herbarium_session_expires',
-  LOCAL_QUERIES: 'herbarium_local_queries_cache'
+  LOCAL_QUERIES: 'herbarium_local_queries_cache',
+  LOCAL_CATEGORIES: 'herbarium_local_categories_cache',
+  LOCAL_TYPES: 'herbarium_local_types_cache'
 };
 
 // Listeners for 401 UNAUTHORIZED events
@@ -106,6 +110,48 @@ export function saveLocalQueries(queries) {
   }
 }
 
+export function getLocalCategories() {
+  try {
+    const cached = localStorage.getItem(STORAGE_KEYS.LOCAL_CATEGORIES);
+    if (cached) {
+      const parsed = JSON.parse(cached);
+      if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+    }
+  } catch (e) {
+    console.warn('Failed to parse cached local categories:', e);
+  }
+  return initialSeedCategories || [];
+}
+
+export function saveLocalCategories(categories) {
+  try {
+    localStorage.setItem(STORAGE_KEYS.LOCAL_CATEGORIES, JSON.stringify(categories));
+  } catch (e) {
+    console.warn('Failed to save local categories:', e);
+  }
+}
+
+export function getLocalTypes() {
+  try {
+    const cached = localStorage.getItem(STORAGE_KEYS.LOCAL_TYPES);
+    if (cached) {
+      const parsed = JSON.parse(cached);
+      if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+    }
+  } catch (e) {
+    console.warn('Failed to parse cached local types:', e);
+  }
+  return initialSeedTypes || [];
+}
+
+export function saveLocalTypes(types) {
+  try {
+    localStorage.setItem(STORAGE_KEYS.LOCAL_TYPES, JSON.stringify(types));
+  } catch (e) {
+    console.warn('Failed to save local types:', e);
+  }
+}
+
 /**
  * Generic request sender to GAS Web App with timeout protection
  */
@@ -155,7 +201,7 @@ async function sendGasRequest(method, url, body, timeoutMs = 15000) {
 }
 
 // ============================================================================
-// API METHODS
+// API METHODS - QUERIES & AUTH
 // ============================================================================
 
 /**
@@ -163,21 +209,47 @@ async function sendGasRequest(method, url, body, timeoutMs = 15000) {
  */
 export async function listQueries() {
   if (!isGasConfigured()) {
-    console.info('[Herbarium] Menggunakan dataset lokal (VITE_GAS_URL belum dikonfigurasi).');
     return getLocalQueries();
   }
 
   try {
     const url = `${GAS_URL}?action=list`;
     const data = await sendGasRequest('GET', url);
-    // Cache latest for offline resiliency & instant loading
     if (Array.isArray(data)) {
       saveLocalQueries(data);
     }
     return data;
   } catch (err) {
-    console.warn('[Herbarium] Gagal mengambil dari GAS Web App, beralih ke cache lokal:', err);
+    console.warn('[Herbarium] Gagal mengambil query dari GAS, beralih ke cache lokal:', err);
     return getLocalQueries();
+  }
+}
+
+/**
+ * List all master data (Categories & Types)
+ */
+export async function listMasters() {
+  if (!isGasConfigured()) {
+    return {
+      categories: getLocalCategories(),
+      types: getLocalTypes()
+    };
+  }
+
+  try {
+    const url = `${GAS_URL}?action=masters`;
+    const data = await sendGasRequest('GET', url);
+    if (data && Array.isArray(data.categories) && Array.isArray(data.types)) {
+      saveLocalCategories(data.categories);
+      saveLocalTypes(data.types);
+    }
+    return data;
+  } catch (err) {
+    console.warn('[Herbarium] Gagal mengambil master dari GAS, beralih ke cache lokal:', err);
+    return {
+      categories: getLocalCategories(),
+      types: getLocalTypes()
+    };
   }
 }
 
@@ -238,11 +310,14 @@ export async function createQuery(payload) {
   if (!isGasConfigured()) {
     const local = getLocalQueries();
     const now = new Date().toISOString();
+    const catName = payload.category.trim();
+    const typeName = (payload.type || 'Query').trim();
+
     const newQuery = {
       id: `qry_${Date.now().toString(36)}_${Math.random().toString(36).substring(2, 7)}`,
       title: payload.title.trim(),
-      category: payload.category.trim(),
-      type: payload.type || 'Query',
+      category: catName,
+      type: typeName,
       sql_query: payload.sql_query,
       created_at: now,
       updated_at: now,
@@ -250,6 +325,11 @@ export async function createQuery(payload) {
     };
     local.unshift(newQuery);
     saveLocalQueries(local);
+
+    // Auto-register to local categories if missing
+    autoRegisterLocalMaster_('category', catName, session.username);
+    autoRegisterLocalMaster_('type', typeName, session.username);
+
     return newQuery;
   }
 
@@ -285,17 +365,24 @@ export async function updateQuery(id, payload) {
       err.code = 'NOT_FOUND';
       throw err;
     }
+    const catName = payload.category.trim();
+    const typeName = (payload.type || 'Query').trim();
+
     const updated = {
       ...local[idx],
       title: payload.title.trim(),
-      category: payload.category.trim(),
-      type: payload.type,
+      category: catName,
+      type: typeName,
       sql_query: payload.sql_query,
       updated_at: new Date().toISOString(),
       updated_by: session.username || 'editor',
     };
     local[idx] = updated;
     saveLocalQueries(local);
+
+    autoRegisterLocalMaster_('category', catName, session.username);
+    autoRegisterLocalMaster_('type', typeName, session.username);
+
     return updated;
   }
 
@@ -336,4 +423,220 @@ export async function deleteQuery(id) {
     token: session.token,
     id,
   });
+}
+
+// ============================================================================
+// API METHODS - MASTER DATA CRUD (CATEGORIES & TYPES)
+// ============================================================================
+
+/**
+ * Create Master (Category or Type)
+ * @param {'category' | 'type'} entity
+ * @param {{ name: string, description?: string, color?: string, sort_order?: number }} payload
+ */
+export async function createMaster(entity, payload) {
+  const session = getSession();
+  if (!session?.token) {
+    notifyUnauthorized();
+    const err = new Error('Harap masuk terlebih dahulu');
+    err.code = 'UNAUTHORIZED';
+    throw err;
+  }
+
+  if (!isGasConfigured()) {
+    const list = entity === 'category' ? getLocalCategories() : getLocalTypes();
+    const name = (payload.name || '').trim();
+    if (!name) throw new Error('Nama wajib diisi');
+
+    if (list.some(item => item.name.toLowerCase() === name.toLowerCase())) {
+      throw new Error(`Nama ${name} sudah digunakan`);
+    }
+
+    const now = new Date().toISOString();
+    const newItem = {
+      id: `${entity === 'category' ? 'cat_' : 'typ_'}${Date.now().toString(36)}_${Math.random().toString(36).substring(2, 6)}`,
+      name,
+      description: (payload.description || '').trim(),
+      color: payload.color || (entity === 'category' ? 'terracotta' : 'neutral'),
+      sort_order: Number.isInteger(payload.sort_order) ? payload.sort_order : list.length + 1,
+      created_at: now,
+      updated_at: now,
+      updated_by: session.username || 'editor',
+    };
+
+    list.push(newItem);
+    if (entity === 'category') saveLocalCategories(list);
+    else saveLocalTypes(list);
+
+    return newItem;
+  }
+
+  return sendGasRequest('POST', GAS_URL, {
+    action: `create_${entity}`,
+    token: session.token,
+    payload,
+  });
+}
+
+/**
+ * Update Master (Category or Type)
+ * Performs cascade update on queries if name changed
+ * @param {'category' | 'type'} entity
+ * @param {string} id
+ * @param {{ name: string, description?: string, color?: string, sort_order?: number }} payload
+ */
+export async function updateMaster(entity, id, payload) {
+  const session = getSession();
+  if (!session?.token) {
+    notifyUnauthorized();
+    const err = new Error('Harap masuk terlebih dahulu');
+    err.code = 'UNAUTHORIZED';
+    throw err;
+  }
+
+  if (!isGasConfigured()) {
+    const list = entity === 'category' ? getLocalCategories() : getLocalTypes();
+    const idx = list.findIndex(item => item.id === id);
+    if (idx === -1) {
+      throw new Error('Item master tidak ditemukan');
+    }
+
+    const oldName = list[idx].name;
+    const newName = (payload.name || '').trim();
+    if (!newName) throw new Error('Nama wajib diisi');
+
+    if (list.some(item => item.id !== id && item.name.toLowerCase() === newName.toLowerCase())) {
+      throw new Error(`Nama ${newName} sudah digunakan item lain`);
+    }
+
+    const updatedItem = {
+      ...list[idx],
+      name: newName,
+      description: payload.description !== undefined ? payload.description.trim() : list[idx].description,
+      color: payload.color || list[idx].color,
+      sort_order: Number.isInteger(payload.sort_order) ? payload.sort_order : list[idx].sort_order,
+      updated_at: new Date().toISOString(),
+      updated_by: session.username || 'editor',
+    };
+
+    list[idx] = updatedItem;
+    if (entity === 'category') saveLocalCategories(list);
+    else saveLocalTypes(list);
+
+    // CASCADE UPDATE in local queries
+    let cascadeCount = 0;
+    if (oldName.toLowerCase() !== newName.toLowerCase()) {
+      const queries = getLocalQueries();
+      const prop = entity === 'category' ? 'category' : 'type';
+      queries.forEach(q => {
+        if ((q[prop] || '').toLowerCase() === oldName.toLowerCase()) {
+          q[prop] = newName;
+          cascadeCount++;
+        }
+      });
+      if (cascadeCount > 0) {
+        saveLocalQueries(queries);
+      }
+    }
+
+    return { item: updatedItem, cascadeCount };
+  }
+
+  return sendGasRequest('POST', GAS_URL, {
+    action: `update_${entity}`,
+    token: session.token,
+    id,
+    payload,
+  });
+}
+
+/**
+ * Delete Master (Category or Type)
+ * Performs reassign on queries to fallback ('Lainnya' / 'Query')
+ * @param {'category' | 'type'} entity
+ * @param {string} id
+ */
+export async function deleteMaster(entity, id) {
+  const session = getSession();
+  if (!session?.token) {
+    notifyUnauthorized();
+    const err = new Error('Harap masuk terlebih dahulu');
+    err.code = 'UNAUTHORIZED';
+    throw err;
+  }
+
+  const fallbackName = entity === 'category' ? 'Lainnya' : 'Query';
+
+  if (!isGasConfigured()) {
+    const list = entity === 'category' ? getLocalCategories() : getLocalTypes();
+    const target = list.find(item => item.id === id);
+    if (!target) {
+      throw new Error('Item master tidak ditemukan');
+    }
+
+    const filtered = list.filter(item => item.id !== id);
+
+    // Ensure fallback exists
+    if (!filtered.some(item => item.name.toLowerCase() === fallbackName.toLowerCase())) {
+      filtered.push({
+        id: `${entity === 'category' ? 'cat_' : 'typ_'}fallback`,
+        name: fallbackName,
+        description: `Master ${entity} bawaan`,
+        color: 'neutral',
+        sort_order: 99,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+        updated_by: 'system',
+      });
+    }
+
+    if (entity === 'category') saveLocalCategories(filtered);
+    else saveLocalTypes(filtered);
+
+    // REASSIGN in local queries
+    let reassignedCount = 0;
+    const queries = getLocalQueries();
+    const prop = entity === 'category' ? 'category' : 'type';
+    queries.forEach(q => {
+      if ((q[prop] || '').toLowerCase() === target.name.toLowerCase()) {
+        q[prop] = fallbackName;
+        reassignedCount++;
+      }
+    });
+    if (reassignedCount > 0) {
+      saveLocalQueries(queries);
+    }
+
+    return { id, reassignedCount, reassignedTo: fallbackName };
+  }
+
+  return sendGasRequest('POST', GAS_URL, {
+    action: `delete_${entity}`,
+    token: session.token,
+    id,
+  });
+}
+
+/**
+ * Helper to auto-register a master item in local storage if missing
+ */
+function autoRegisterLocalMaster_(entity, name, username) {
+  if (!name) return;
+  const list = entity === 'category' ? getLocalCategories() : getLocalTypes();
+  if (list.some(item => item.name.toLowerCase() === name.toLowerCase())) {
+    return;
+  }
+  const now = new Date().toISOString();
+  list.push({
+    id: `${entity === 'category' ? 'cat_' : 'typ_'}${Date.now().toString(36)}_${Math.random().toString(36).substring(2, 6)}`,
+    name,
+    description: '',
+    color: entity === 'category' ? 'terracotta' : 'neutral',
+    sort_order: list.length + 1,
+    created_at: now,
+    updated_at: now,
+    updated_by: username || 'editor',
+  });
+  if (entity === 'category') saveLocalCategories(list);
+  else saveLocalTypes(list);
 }

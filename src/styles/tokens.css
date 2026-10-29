@@ -19,6 +19,29 @@
   --danger: #A8432F;
   --ring: #6F9A7C;
 
+  /* Badge Color Presets - Light Mode */
+  --badge-terracotta-bg: #F3E4DA;
+  --badge-terracotta-text: #B86B4B;
+  --badge-terracotta-border: #E6CDBC;
+  --badge-forest-bg: #E3EDE4;
+  --badge-forest-text: #3F6B4F;
+  --badge-forest-border: #C6DCC9;
+  --badge-teal-bg: #E1F2F0;
+  --badge-teal-text: #2A6E69;
+  --badge-teal-border: #BDE2DE;
+  --badge-amber-bg: #F8F0DA;
+  --badge-amber-text: #966812;
+  --badge-amber-border: #ECD9A8;
+  --badge-berry-bg: #F6E3E6;
+  --badge-berry-text: #9E3B50;
+  --badge-berry-border: #EAC4CB;
+  --badge-slate-bg: #E5EBF0;
+  --badge-slate-text: #3D596B;
+  --badge-slate-border: #C8D7E2;
+  --badge-neutral-bg: #EFEDE3;
+  --badge-neutral-text: #5E6B62;
+  --badge-neutral-border: #DCD8CB;
+
   /* SQL Syntax Highlighting - Light */
   --sql-bg: #F1EFE6;
   --sql-keyword: #3F6B4F;
@@ -76,6 +99,29 @@
   --warning: #D9B35A;
   --danger: #E0846F;
   --ring: #6F9A7C;
+
+  /* Badge Color Presets - Dark Mode */
+  --badge-terracotta-bg: #3A2A22;
+  --badge-terracotta-text: #D99A7A;
+  --badge-terracotta-border: #543D32;
+  --badge-forest-bg: #223428;
+  --badge-forest-text: #8DBB98;
+  --badge-forest-border: #324B3B;
+  --badge-teal-bg: #1D3330;
+  --badge-teal-text: #76C2BA;
+  --badge-teal-border: #2A4B47;
+  --badge-amber-bg: #382F18;
+  --badge-amber-text: #D9B04D;
+  --badge-amber-border: #524523;
+  --badge-berry-bg: #3A1E26;
+  --badge-berry-text: #DE788E;
+  --badge-berry-border: #552D37;
+  --badge-slate-bg: #212D36;
+  --badge-slate-text: #8FAEC0;
+  --badge-slate-border: #334350;
+  --badge-neutral-bg: #212D26;
+  --badge-neutral-text: #9BAA9F;
+  --badge-neutral-border: #2F3F36;
 
   /* SQL Syntax Highlighting - Dark */
   --sql-bg: #0F1612;

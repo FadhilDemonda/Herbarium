@@ -1,40 +1,46 @@
 import { useState, useEffect, useRef } from 'react';
 import { X, AlertCircle, Sparkles } from 'lucide-react';
-import { SegmentedControl } from './SegmentedControl';
 import { formatSql } from '../lib/formatter';
 import styles from './QueryFormModal.module.css';
 
-const TYPE_OPTIONS = [
-  { label: 'Query', value: 'Query' },
-  { label: 'Dashboard', value: 'Dashboard' },
-];
+const DEFAULT_TYPES = ['Query', 'Dashboard'];
 
 export function QueryFormModal({
   isOpen,
   onClose,
   onSubmit,
   existingCategories = [],
+  existingTypes = DEFAULT_TYPES,
   initialData = null,
 }) {
   const isEdit = !!initialData;
   const [title, setTitle] = useState('');
+
+  // Category State
   const [category, setCategory] = useState('');
   const [isNewCategory, setIsNewCategory] = useState(false);
   const [newCategoryName, setNewCategoryName] = useState('');
+
+  // Type State
   const [type, setType] = useState('Query');
+  const [isNewType, setIsNewType] = useState(false);
+  const [newTypeName, setNewTypeName] = useState('');
+
   const [sqlQuery, setSqlQuery] = useState('');
   const [errors, setErrors] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const titleInputRef = useRef(null);
+
+  const availableTypes = existingTypes.length > 0 ? existingTypes : DEFAULT_TYPES;
 
   // Initialize or reset form state
   useEffect(() => {
     if (isOpen) {
       if (initialData) {
         setTitle(initialData.title || '');
-        setType(initialData.type || 'Query');
         setSqlQuery(initialData.sql_query || '');
 
+        // Category
         const cat = initialData.category || '';
         if (existingCategories.includes(cat) || !cat) {
           setCategory(cat);
@@ -45,12 +51,28 @@ export function QueryFormModal({
           setIsNewCategory(true);
           setNewCategoryName(cat);
         }
+
+        // Type
+        const t = initialData.type || 'Query';
+        if (availableTypes.includes(t)) {
+          setType(t);
+          setIsNewType(false);
+          setNewTypeName('');
+        } else {
+          setType('__new__');
+          setIsNewType(true);
+          setNewTypeName(t);
+        }
       } else {
         setTitle('');
         setCategory(existingCategories[0] || '');
         setIsNewCategory(false);
         setNewCategoryName('');
-        setType('Query');
+
+        setType(availableTypes[0] || 'Query');
+        setIsNewType(false);
+        setNewTypeName('');
+
         setSqlQuery('');
       }
       setErrors({});
@@ -60,7 +82,7 @@ export function QueryFormModal({
       document.body.classList.remove('modal-open');
     }
     return () => document.body.classList.remove('modal-open');
-  }, [isOpen, initialData, existingCategories]);
+  }, [isOpen, initialData, existingCategories, availableTypes]);
 
   // Handle Esc key
   useEffect(() => {
@@ -86,6 +108,17 @@ export function QueryFormModal({
     }
   };
 
+  const handleTypeChange = (e) => {
+    const val = e.target.value;
+    if (val === '__new__') {
+      setIsNewType(true);
+      setType('__new__');
+    } else {
+      setIsNewType(false);
+      setType(val);
+    }
+  };
+
   const validate = () => {
     const newErrors = {};
     if (!title.trim()) {
@@ -99,8 +132,9 @@ export function QueryFormModal({
       newErrors.category = 'Kategori wajib diisi atau dipilih';
     }
 
-    if (type !== 'Query' && type !== 'Dashboard') {
-      newErrors.type = "Jenis harus 'Query' atau 'Dashboard'";
+    const finalType = isNewType ? newTypeName.trim() : type.trim();
+    if (!finalType || finalType === '__new__') {
+      newErrors.type = 'Jenis query wajib diisi atau dipilih';
     }
 
     if (!sqlQuery.trim()) {
@@ -117,12 +151,13 @@ export function QueryFormModal({
 
     setIsSubmitting(true);
     const finalCategory = isNewCategory ? newCategoryName.trim() : category.trim();
+    const finalType = isNewType ? newTypeName.trim() : type.trim();
 
     try {
       await onSubmit({
         title: title.trim(),
         category: finalCategory,
-        type,
+        type: finalType,
         sql_query: sqlQuery,
       });
       onClose();
@@ -226,15 +261,42 @@ export function QueryFormModal({
             )}
           </div>
 
-          {/* 3. Jenis (Segmented Control) */}
+          {/* 3. Jenis */}
           <div className={styles.formGroup}>
-            <span className={styles.label}>Jenis</span>
-            <SegmentedControl
-              options={TYPE_OPTIONS}
+            <label htmlFor="query-type" className={styles.label}>
+              Jenis
+            </label>
+            <select
+              id="query-type"
+              className={styles.select}
               value={type}
-              onChange={setType}
-              ariaLabel="Pilih jenis query"
-            />
+              onChange={handleTypeChange}
+              disabled={isSubmitting}
+            >
+              {availableTypes.map((t) => (
+                <option key={t} value={t}>
+                  {t}
+                </option>
+              ))}
+              <option value="__new__">+ Tambah jenis baru...</option>
+            </select>
+
+            {isNewType && (
+              <input
+                type="text"
+                className={`${styles.input} ${styles.customCategoryInput}`}
+                placeholder="Nama jenis baru (misal: Report, View)"
+                value={newTypeName}
+                onChange={(e) => setNewTypeName(e.target.value)}
+                disabled={isSubmitting}
+                autoFocus
+              />
+            )}
+            {errors.type && (
+              <span className={styles.errorMessage}>
+                <AlertCircle size={14} /> {errors.type}
+              </span>
+            )}
           </div>
 
           {/* 4. Query SQL */}

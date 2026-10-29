@@ -10,6 +10,7 @@ import { CommandPalette } from './components/CommandPalette';
 import { LoginModal } from './components/LoginModal';
 import { QueryFormModal } from './components/QueryFormModal';
 import { DeleteConfirmDialog } from './components/DeleteConfirmDialog';
+import { MasterDataPage } from './components/MasterDataPage';
 import { SkeletonCard, EmptyState, ErrorState } from './components/States';
 import { useToast } from './components/Toast';
 import { useAuth } from './context/AuthContext';
@@ -18,21 +19,22 @@ import * as api from './api/client';
 import { Plus, LayoutGrid, List, Download, ChevronDown, FileSpreadsheet, FileCode } from 'lucide-react';
 import styles from './App.module.css';
 
-const TYPE_FILTER_OPTIONS = [
-  { label: 'Semua', value: 'ALL' },
-  { label: 'Query', value: 'Query' },
-  { label: 'Dashboard', value: 'Dashboard' },
-];
-
 export function App() {
   const { isLoggedIn, isLoginModalOpen, closeLoginModal } = useAuth();
   const { showToast } = useToast();
+
+  // Navigation page state: 'queries' | 'masters'
+  const [activePage, setActivePage] = useState('queries');
 
   // Queries state - Instant Cache Hydration (0ms initial load!)
   const [queries, setQueries] = useState(() => api.getLocalQueries());
   const [isLoading, setIsLoading] = useState(() => queries.length === 0);
   const [isSyncing, setIsSyncing] = useState(false);
   const [error, setError] = useState(null);
+
+  // Master Data state - Categories & Types
+  const [masterCategories, setMasterCategories] = useState(() => api.getLocalCategories());
+  const [masterTypes, setMasterTypes] = useState(() => api.getLocalTypes());
 
   // Filters state (synced with URL)
   const [selectedCategory, setSelectedCategory] = useState('');
@@ -78,6 +80,13 @@ export function App() {
   const [editingQuery, setEditingQuery] = useState(null);
   const [deletingQuery, setDeletingQuery] = useState(null);
 
+  // If user logs out while on masters page, return to queries page
+  useEffect(() => {
+    if (!isLoggedIn && activePage === 'masters') {
+      setActivePage('queries');
+    }
+  }, [isLoggedIn, activePage]);
+
   // Parse filters from URL on initial load
   useEffect(() => {
     try {
@@ -88,7 +97,7 @@ export function App() {
       const detailId = params.get('detail');
 
       if (cat) setSelectedCategory(cat);
-      if (t === 'Query' || t === 'Dashboard') setSelectedType(t);
+      if (t) setSelectedType(t);
       if (q) setSearchQuery(q);
 
       // If detail ID in URL, we'll open it once queries are loaded
@@ -147,9 +156,27 @@ export function App() {
     }
   }, [queries.length]);
 
+  // Fetch Master Data (Categories & Types)
+  const fetchMasters = useCallback(async () => {
+    try {
+      const masters = await api.listMasters();
+      if (masters) {
+        if (Array.isArray(masters.categories)) {
+          setMasterCategories(masters.categories);
+        }
+        if (Array.isArray(masters.types)) {
+          setMasterTypes(masters.types);
+        }
+      }
+    } catch (err) {
+      console.warn('Gagal memuat master data:', err);
+    }
+  }, []);
+
   useEffect(() => {
     fetchQueries();
-  }, [fetchQueries]);
+    fetchMasters();
+  }, [fetchQueries, fetchMasters]);
 
   // Global Ctrl+K / Cmd+K listener
   useEffect(() => {
@@ -163,15 +190,60 @@ export function App() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
 
-  // Compute Categories with Counts
+  // Dynamic Type Filter Options
+  const typeFilterOptions = useMemo(() => {
+    const opts = [{ label: 'Semua', value: 'ALL' }];
+    masterTypes.forEach((t) => {
+      opts.push({ label: t.name, value: t.name });
+    });
+    return opts;
+  }, [masterTypes]);
+
+  // Badge Color Mappings
+  const categoryColorMap = useMemo(() => {
+    const map = {};
+    masterCategories.forEach((c) => {
+      map[(c.name || '').trim().toLowerCase()] = c.color;
+    });
+    return map;
+  }, [masterCategories]);
+
+  const typeColorMap = useMemo(() => {
+    const map = {};
+    masterTypes.forEach((t) => {
+      map[(t.name || '').trim().toLowerCase()] = t.color;
+    });
+    return map;
+  }, [masterTypes]);
+
+  // Compute Categories with Counts (Ordered by masterCategories sort_order)
   const categoriesWithCounts = useMemo(() => {
     const map = {};
     for (const q of queries) {
       const cat = q.category || 'Lainnya';
       map[cat] = (map[cat] || 0) + 1;
     }
-    return Object.entries(map).map(([name, count]) => ({ name, count }));
-  }, [queries]);
+
+    const list = [];
+    const seen = new Set();
+
+    masterCategories.forEach((mc) => {
+      seen.add(mc.name);
+      list.push({
+        name: mc.name,
+        count: map[mc.name] || 0,
+        color: mc.color,
+      });
+    });
+
+    Object.entries(map).forEach(([name, count]) => {
+      if (!seen.has(name)) {
+        list.push({ name, count, color: 'neutral' });
+      }
+    });
+
+    return list;
+  }, [queries, masterCategories]);
 
   const existingCategoryNames = useMemo(() => {
     return categoriesWithCounts.map((c) => c.name);
@@ -246,7 +318,7 @@ export function App() {
     updateUrlParams(selectedCategory, selectedType, searchQuery, null);
   }, [selectedCategory, selectedType, searchQuery, updateUrlParams]);
 
-  // CRUD Handlers
+  // CRUD Handlers for Queries
   const handleCreateNewQuery = () => {
     setEditingQuery(null);
     setIsFormModalOpen(true);
@@ -280,6 +352,9 @@ export function App() {
       });
       showToast('Query baru berhasil ditambahkan');
     }
+
+    // Refresh masters in case a new category or type was created
+    fetchMasters();
   };
 
   const handleDeleteConfirm = async (id) => {
@@ -301,185 +376,205 @@ export function App() {
       <Header
         onOpenCommandPalette={() => setIsCommandPaletteOpen(true)}
         onOpenCreateModal={handleCreateNewQuery}
+        activePage={activePage}
+        onNavigate={setActivePage}
       />
 
       {/* Main Layout */}
-      <div className={styles.mainContent}>
-        {/* Left Sidebar Category Filter */}
-        <Sidebar
-          categories={categoriesWithCounts}
-          selectedCategory={selectedCategory}
-          onSelectCategory={handleCategorySelect}
-          totalCount={queries.length}
+      {activePage === 'masters' && isLoggedIn ? (
+        <MasterDataPage
+          categories={masterCategories}
+          types={masterTypes}
+          queries={queries}
+          onRefreshMasters={fetchMasters}
+          onRefreshQueries={fetchQueries}
+          onBackToQueries={() => setActivePage('queries')}
         />
+      ) : (
+        <div className={styles.mainContent}>
+          {/* Left Sidebar Category Filter */}
+          <Sidebar
+            categories={categoriesWithCounts}
+            selectedCategory={selectedCategory}
+            onSelectCategory={handleCategorySelect}
+            totalCount={queries.length}
+          />
 
-        {/* Query Feed Area */}
-        <main className={styles.feedArea}>
-          {/* Quick Stats Banner */}
-          {!isLoading && !error && queries.length > 0 && (
-            <StatsBanner
-              queries={queries}
-              onSelectCategory={handleCategorySelect}
-              onSelectQuery={handleOpenDetail}
-            />
-          )}
+          {/* Query Feed Area */}
+          <main className={styles.feedArea}>
+            {/* Quick Stats Banner */}
+            {!isLoading && !error && queries.length > 0 && (
+              <StatsBanner
+                queries={queries}
+                onSelectCategory={handleCategorySelect}
+                onSelectQuery={handleOpenDetail}
+              />
+            )}
 
-          {/* Feed Toolbar */}
-          <div className={styles.feedHeader}>
-            <SegmentedControl
-              options={TYPE_FILTER_OPTIONS}
-              value={selectedType}
-              onChange={handleTypeSelect}
-              ariaLabel="Filter jenis query"
-            />
+            {/* Feed Toolbar */}
+            <div className={styles.feedHeader}>
+              <SegmentedControl
+                options={typeFilterOptions}
+                value={selectedType}
+                onChange={handleTypeSelect}
+                ariaLabel="Filter jenis query"
+              />
 
-            <div className={styles.toolbarControls}>
-              {/* Sort Selector */}
-              <select
-                className={styles.sortSelect}
-                value={sortBy}
-                onChange={(e) => setSortBy(e.target.value)}
-                aria-label="Urutkan query"
-              >
-                <option value="updated_desc">Terbaru diperbarui</option>
-                <option value="title_asc">Judul (A-Z)</option>
-                <option value="title_desc">Judul (Z-A)</option>
-                <option value="created_asc">Terlama dibuat</option>
-              </select>
-
-              {/* View Mode Toggle: Grid vs Table */}
-              <div className={styles.viewModeToggle} role="group" aria-label="Mode tampilan">
-                <button
-                  type="button"
-                  className={`${styles.viewModeBtn} ${viewMode === 'grid' ? styles.viewModeBtnActive : ''}`}
-                  onClick={() => setViewMode('grid')}
-                  aria-label="Tampilan Kartu (Grid)"
-                  title="Tampilan Kartu"
+              <div className={styles.toolbarControls}>
+                {/* Sort Selector */}
+                <select
+                  className={styles.sortSelect}
+                  value={sortBy}
+                  onChange={(e) => setSortBy(e.target.value)}
+                  aria-label="Urutkan query"
                 >
-                  <LayoutGrid size={15} />
-                </button>
-                <button
-                  type="button"
-                  className={`${styles.viewModeBtn} ${viewMode === 'table' ? styles.viewModeBtnActive : ''}`}
-                  onClick={() => setViewMode('table')}
-                  aria-label="Tampilan Tabel Ringkas"
-                  title="Tampilan Tabel"
-                >
-                  <List size={15} />
-                </button>
-              </div>
+                  <option value="updated_desc">Terbaru diperbarui</option>
+                  <option value="title_asc">Judul (A-Z)</option>
+                  <option value="title_desc">Judul (Z-A)</option>
+                  <option value="created_asc">Terlama dibuat</option>
+                </select>
 
-              {/* Export Dropdown */}
-              <div className={styles.exportContainer} ref={exportRef}>
-                <button
-                  type="button"
-                  className={styles.exportBtn}
-                  onClick={() => setIsExportOpen((prev) => !prev)}
-                  aria-haspopup="true"
-                  aria-expanded={isExportOpen}
-                  title="Ekspor koleksi query"
-                >
-                  <Download size={14} />
-                  <span>Ekspor</span>
-                  <ChevronDown size={12} />
-                </button>
-
-                {isExportOpen && (
-                  <div className={styles.exportDropdown} role="menu">
-                    <button
-                      type="button"
-                      className={styles.exportDropdownItem}
-                      onClick={() => {
-                        exportToCsv(sortedQueries);
-                        setIsExportOpen(false);
-                        showToast(`Mengekspor ${sortedQueries.length} query ke CSV`);
-                      }}
-                      role="menuitem"
-                    >
-                      <FileSpreadsheet size={14} />
-                      <span>Unduh CSV</span>
-                    </button>
-                    <button
-                      type="button"
-                      className={styles.exportDropdownItem}
-                      onClick={() => {
-                        exportToJson(sortedQueries);
-                        setIsExportOpen(false);
-                        showToast(`Mengekspor ${sortedQueries.length} query ke JSON`);
-                      }}
-                      role="menuitem"
-                    >
-                      <FileCode size={14} />
-                      <span>Unduh JSON</span>
-                    </button>
-                  </div>
-                )}
-              </div>
-
-              <div className={styles.feedStats}>
-                <span className={styles.countText}>
-                  {sortedQueries.length} query
-                </span>
-                {isSyncing && (
-                  <span
-                    className={styles.syncingBadge}
-                    title="Menyinkronkan data terbaru dengan Google Sheets di latar belakang"
-                  >
-                    <span className={styles.syncDot}></span>
-                    Menyinkronkan...
-                  </span>
-                )}
-                {hasActiveFilters && (
+                {/* View Mode Toggle: Grid vs Table */}
+                <div className={styles.viewModeToggle} role="group" aria-label="Mode tampilan">
                   <button
                     type="button"
-                    className={styles.resetBtn}
-                    onClick={handleResetFilters}
-                    aria-label="Reset semua filter"
+                    className={`${styles.viewModeBtn} ${viewMode === 'grid' ? styles.viewModeBtnActive : ''}`}
+                    onClick={() => setViewMode('grid')}
+                    aria-label="Tampilan Kartu (Grid)"
+                    title="Tampilan Kartu"
                   >
-                    Reset filter
+                    <LayoutGrid size={15} />
                   </button>
-                )}
+                  <button
+                    type="button"
+                    className={`${styles.viewModeBtn} ${viewMode === 'table' ? styles.viewModeBtnActive : ''}`}
+                    onClick={() => setViewMode('table')}
+                    aria-label="Tampilan Tabel Ringkas"
+                    title="Tampilan Tabel"
+                  >
+                    <List size={15} />
+                  </button>
+                </div>
+
+                {/* Export Dropdown */}
+                <div className={styles.exportContainer} ref={exportRef}>
+                  <button
+                    type="button"
+                    className={styles.exportBtn}
+                    onClick={() => setIsExportOpen((prev) => !prev)}
+                    aria-haspopup="true"
+                    aria-expanded={isExportOpen}
+                    title="Ekspor koleksi query"
+                  >
+                    <Download size={14} />
+                    <span>Ekspor</span>
+                    <ChevronDown size={12} />
+                  </button>
+
+                  {isExportOpen && (
+                    <div className={styles.exportDropdown} role="menu">
+                      <button
+                        type="button"
+                        className={styles.exportDropdownItem}
+                        onClick={() => {
+                          exportToCsv(sortedQueries);
+                          setIsExportOpen(false);
+                          showToast(`Mengekspor ${sortedQueries.length} query ke CSV`);
+                        }}
+                        role="menuitem"
+                      >
+                        <FileSpreadsheet size={14} />
+                        <span>Unduh CSV</span>
+                      </button>
+                      <button
+                        type="button"
+                        className={styles.exportDropdownItem}
+                        onClick={() => {
+                          exportToJson(sortedQueries);
+                          setIsExportOpen(false);
+                          showToast(`Mengekspor ${sortedQueries.length} query ke JSON`);
+                        }}
+                        role="menuitem"
+                      >
+                        <FileCode size={14} />
+                        <span>Unduh JSON</span>
+                      </button>
+                    </div>
+                  )}
+                </div>
+
+                <div className={styles.feedStats}>
+                  <span className={styles.countText}>
+                    {sortedQueries.length} query
+                  </span>
+                  {isSyncing && (
+                    <span
+                      className={styles.syncingBadge}
+                      title="Menyinkronkan data terbaru dengan Google Sheets di latar belakang"
+                    >
+                      <span className={styles.syncDot}></span>
+                      Menyinkronkan...
+                    </span>
+                  )}
+                  {hasActiveFilters && (
+                    <button
+                      type="button"
+                      className={styles.resetBtn}
+                      onClick={handleResetFilters}
+                      aria-label="Reset semua filter"
+                    >
+                      Reset filter
+                    </button>
+                  )}
+                </div>
               </div>
             </div>
-          </div>
 
-          {/* Feed Content */}
-          {isLoading ? (
-            <div className={styles.cardGrid}>
-              {[...Array(6)].map((_, i) => (
-                <SkeletonCard key={i} />
-              ))}
-            </div>
-          ) : error ? (
-            <ErrorState message={error} onRetry={fetchQueries} />
-          ) : sortedQueries.length === 0 ? (
-            <EmptyState
-              title={hasActiveFilters ? 'Tidak ada query yang cocok' : 'Belum ada query tersimpan'}
-              message={
-                hasActiveFilters
-                  ? 'Coba ganti kategori, jenis, atau kata kunci pencarian Anda.'
-                  : 'Klik tombol Tambah untuk menambahkan query pertama Anda.'
-              }
-              onReset={hasActiveFilters ? handleResetFilters : null}
-            />
-          ) : viewMode === 'table' ? (
-            <TableView queries={sortedQueries} onSelect={handleOpenDetail} />
-          ) : (
-            <div className={styles.cardGrid}>
-              {sortedQueries.map((query) => (
-                <QueryCard
-                  key={query.id}
-                  query={query}
-                  onSelect={handleOpenDetail}
-                />
-              ))}
-            </div>
-          )}
-        </main>
-      </div>
+            {/* Feed Content */}
+            {isLoading ? (
+              <div className={styles.cardGrid}>
+                {[...Array(6)].map((_, i) => (
+                  <SkeletonCard key={i} />
+                ))}
+              </div>
+            ) : error ? (
+              <ErrorState message={error} onRetry={fetchQueries} />
+            ) : sortedQueries.length === 0 ? (
+              <EmptyState
+                title={hasActiveFilters ? 'Tidak ada query yang cocok' : 'Belum ada query tersimpan'}
+                message={
+                  hasActiveFilters
+                    ? 'Coba ganti kategori, jenis, atau kata kunci pencarian Anda.'
+                    : 'Klik tombol Tambah untuk menambahkan query pertama Anda.'
+                }
+                onReset={hasActiveFilters ? handleResetFilters : null}
+              />
+            ) : viewMode === 'table' ? (
+              <TableView
+                queries={sortedQueries}
+                onSelect={handleOpenDetail}
+                categoryColorMap={categoryColorMap}
+                typeColorMap={typeColorMap}
+              />
+            ) : (
+              <div className={styles.cardGrid}>
+                {sortedQueries.map((query) => (
+                  <QueryCard
+                    key={query.id}
+                    query={query}
+                    onSelect={handleOpenDetail}
+                    categoryColor={categoryColorMap[(query.category || '').trim().toLowerCase()]}
+                    typeColor={typeColorMap[(query.type || '').trim().toLowerCase()]}
+                  />
+                ))}
+              </div>
+            )}
+          </main>
+        </div>
+      )}
 
       {/* Mobile Floating Action Button */}
-      {isLoggedIn && (
+      {isLoggedIn && activePage === 'queries' && (
         <button
           type="button"
           className={styles.mobileFab}
@@ -514,6 +609,8 @@ export function App() {
           onDelete={(q) => {
             setDeletingQuery(q);
           }}
+          categoryColor={categoryColorMap[(selectedQueryDetail.category || '').trim().toLowerCase()]}
+          typeColor={typeColorMap[(selectedQueryDetail.type || '').trim().toLowerCase()]}
         />
       )}
 
@@ -522,6 +619,7 @@ export function App() {
         onClose={() => setIsFormModalOpen(false)}
         onSubmit={handleFormSubmit}
         existingCategories={existingCategoryNames}
+        existingTypes={masterTypes.map((t) => t.name)}
         initialData={editingQuery}
       />
 

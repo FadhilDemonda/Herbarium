@@ -1,10 +1,15 @@
 import { useState, useRef, useEffect } from 'react';
-import { Search, Sun, Moon, Plus, User, LogOut, ChevronDown } from 'lucide-react';
+import { Search, Sun, Moon, Plus, User, LogOut, ChevronDown, Database, BookOpen } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../hooks/useTheme';
 import styles from './Header.module.css';
 
-export function Header({ onOpenCommandPalette, onOpenCreateModal }) {
+export function Header({
+  onOpenCommandPalette,
+  onOpenCreateModal,
+  activePage = 'queries',
+  onNavigate,
+}) {
   const { isLoggedIn, user, logout, openLoginModal } = useAuth();
   const { theme, toggleTheme } = useTheme();
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
@@ -24,29 +29,57 @@ export function Header({ onOpenCommandPalette, onOpenCreateModal }) {
   return (
     <header className={styles.header}>
       {/* Brand Logo & Wordmark */}
-      <div className={styles.leftSection} onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}>
-        <div className={styles.logoIcon}>
-          <svg
-            width="26"
-            height="26"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="1.75"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          >
-            <path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 4.18 2 8 0 5.5-4.78 10-10 10Z" />
-            <path d="M2 21c0-3 1.85-5.36 5.08-6C9.5 14.52 12 13 13 12" />
-          </svg>
+      <div style={{ display: 'flex', alignItems: 'center' }}>
+        <div
+          className={styles.leftSection}
+          onClick={() => {
+            if (onNavigate) onNavigate('queries');
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+          }}
+        >
+          <div className={styles.logoIcon}>
+            <svg
+              width="26"
+              height="26"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.75"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 4.18 2 8 0 5.5-4.78 10-10 10Z" />
+              <path d="M2 21c0-3 1.85-5.36 5.08-6C9.5 14.52 12 13 13 12" />
+            </svg>
+          </div>
+          <div className={styles.brandInfo}>
+            <span className={styles.brandTitle}>Herbarium</span>
+            <span className={styles.brandTagline}>Pustaka query Superset</span>
+          </div>
         </div>
-        <div className={styles.brandInfo}>
-          <span className={styles.brandTitle}>Herbarium</span>
-          <span className={styles.brandTagline}>Pustaka query Superset</span>
-        </div>
+
+        {/* Navigation Switcher: Only when logged in */}
+        {isLoggedIn && onNavigate && (
+          <nav className={styles.pageNav} aria-label="Navigasi Halaman Utama">
+            <button
+              type="button"
+              className={`${styles.pageNavBtn} ${activePage === 'queries' ? styles.pageNavBtnActive : ''}`}
+              onClick={() => onNavigate('queries')}
+            >
+              Pustaka Query
+            </button>
+            <button
+              type="button"
+              className={`${styles.pageNavBtn} ${activePage === 'masters' ? styles.pageNavBtnActive : ''}`}
+              onClick={() => onNavigate('masters')}
+            >
+              Master Data
+            </button>
+          </nav>
+        )}
       </div>
 
-      {/* Center Search Trigger */}
+      {/* Center Search Trigger (only on queries page or general search) */}
       <button
         type="button"
         className={styles.searchTrigger}
@@ -99,6 +132,35 @@ export function Header({ onOpenCommandPalette, onOpenCreateModal }) {
 
               {isDropdownOpen && (
                 <div className={styles.userDropdown} role="menu">
+                  {onNavigate && (
+                    <>
+                      <button
+                        type="button"
+                        className={styles.dropdownItem}
+                        onClick={() => {
+                          setIsDropdownOpen(false);
+                          onNavigate('queries');
+                        }}
+                        role="menuitem"
+                      >
+                        <BookOpen size={14} />
+                        <span>Pustaka Query</span>
+                      </button>
+                      <button
+                        type="button"
+                        className={styles.dropdownItem}
+                        onClick={() => {
+                          setIsDropdownOpen(false);
+                          onNavigate('masters');
+                        }}
+                        role="menuitem"
+                      >
+                        <Database size={14} />
+                        <span>Master Data</span>
+                      </button>
+                      <div style={{ height: '1px', backgroundColor: 'var(--border)', margin: '4px 0' }} />
+                    </>
+                  )}
                   <button
                     type="button"
                     className={styles.dropdownItem}

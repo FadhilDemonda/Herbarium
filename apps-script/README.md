@@ -13,7 +13,7 @@ Dokumen ini menjelaskan langkah-langkah lengkap untuk menyiapkan Google Sheets s
 ## 1. Membuat Google Spreadsheet
 
 1. Buka [Google Sheets](https://sheets.new) dan buat Spreadsheet baru dengan judul **Herbarium Database**.
-2. Buat dua tab sheet di Spreadsheet tersebut:
+2. Spreadsheet ini menggunakan 4 tab sheet:
 
 ### A. Sheet `queries`
 Buat header di baris ke-1 (Row 1):
@@ -25,7 +25,7 @@ Buat header di baris ke-1 (Row 1):
 - `id`: ID unik query (`qry_...`)
 - `title`: Judul query (maks 150 karakter)
 - `category`: Kategori (mis. `Query Permintaan Dataset`, `Query Superset`, dll)
-- `type`: Jenis query (`Query` atau `Dashboard`)
+- `type`: Jenis query (mis. `Query`, `Dashboard`, dll)
 - `sql_query`: Teks query SQL
 - `created_at`: Waktu pembuatan (ISO 8601)
 - `updated_at`: Waktu terakhir diedit (ISO 8601)
@@ -45,6 +45,12 @@ Tambahkan baris akun editor pertama (contoh):
 *Catatan:*
 - Akun dengan `active` selain `TRUE` (misal `FALSE`) akan ditolak saat login.
 - Penambahan atau penghapusan akun dilakukan langsung di sheet `users` ini oleh admin.
+
+### C. Sheet `categories` & `types` (Otomatis Diinisialisasi)
+Kedua sheet master ini **akan dibuat dan diisi secara otomatis** oleh sistem saat fungsi dijalankan atau via Web API backend:
+- Header: `id`, `name`, `description`, `color`, `sort_order`, `created_at`, `updated_at`, `updated_by`
+- Nilai `color`: pilihan preset warna (`terracotta`, `forest`, `teal`, `amber`, `berry`, `slate`, `neutral`).
+- Saat sebuah Kategori/Jenis diubah namanya di Master Data, seluruh query yang menggunakannya akan otomatis diperbarui (*cascade update*). Jika dihapus, query terkait otomatis dialihkan ke kategori `'Lainnya'` atau jenis `'Query'`.
 
 ---
 
