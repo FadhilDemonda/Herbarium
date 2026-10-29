@@ -7,9 +7,11 @@
   display: flex;
   flex-direction: column;
   justify-content: space-between;
-  gap: var(--space-3);
+  gap: 12px;
   cursor: pointer;
   outline: none;
+  min-width: 0; /* CRITICAL: prevents column blowout in grid */
+  width: 100%;
   transition: all var(--transition-fast);
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
 }
@@ -18,7 +20,7 @@
   background-color: var(--surface-2);
   border-color: var(--ring);
   transform: translateY(-1px);
-  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.08);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
 }
 
 .card:focus-visible {
@@ -27,33 +29,35 @@
 }
 
 .cardActive {
-  border-color: var(--primary);
-  box-shadow: 0 0 0 1px var(--primary), 0 4px 20px rgba(63, 107, 79, 0.15);
+  border: 1.5px solid var(--primary);
+  box-shadow: 0 4px 20px rgba(63, 107, 79, 0.15);
 }
 
 .activeIndicatorDot {
   position: absolute;
-  top: -6px;
-  right: -6px;
-  width: 13px;
-  height: 13px;
+  top: -5px;
+  right: -5px;
+  width: 10px;
+  height: 10px;
   border-radius: 50%;
-  background-color: var(--success);
-  border: 2px solid var(--surface);
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+  background-color: var(--primary);
+  border: 2px solid var(--bg);
+  box-shadow: 0 0 8px var(--primary);
+  z-index: 2;
 }
 
 .cardContent {
   display: flex;
   flex-direction: column;
   gap: 10px;
+  min-width: 0;
 }
 
 .topRow {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: var(--space-2);
+  gap: 8px;
 }
 
 .badgeGroup {
@@ -84,8 +88,8 @@
 }
 
 .iconActionBtn:hover {
-  background-color: var(--surface);
-  color: var(--text);
+  background-color: var(--surface-2);
+  color: var(--primary);
   border-color: var(--border);
 }
 
@@ -101,6 +105,7 @@
   display: flex;
   flex-direction: column;
   gap: 3px;
+  min-width: 0;
 }
 
 .cardTitle {
@@ -128,23 +133,27 @@
   overflow: hidden;
 }
 
-/* 2-line Code Snippet Pill */
+/* 2-3 line Code Snippet Pill */
 .codeSnippetBox {
   border-radius: var(--radius-md);
   background-color: var(--sql-bg);
   border: 1px solid var(--border);
-  padding: 8px 10px;
+  padding: 10px 12px;
   font-family: var(--font-mono);
   font-size: 0.75rem;
-  line-height: 1.4;
-  overflow-x: auto;
-  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.05);
+  line-height: 1.5;
+  overflow: hidden;
+  max-height: 84px;
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.08);
+  min-width: 0;
 }
 
 .codeSnippet {
   display: block;
-  white-space: pre;
+  white-space: pre-wrap;
+  word-break: break-all;
   color: var(--text);
+  margin: 0;
 }
 
 /* Touchpoint Table Badges */
@@ -162,10 +171,11 @@
   font-weight: 700;
   text-transform: uppercase;
   color: var(--text-muted);
+  letter-spacing: 0.05em;
 }
 
 .tableBadge {
-  padding: 2px 6px;
+  padding: 2px 7px;
   border-radius: 4px;
   background-color: var(--surface-2);
   border: 1px solid var(--border);
@@ -178,7 +188,7 @@
 /* Card Footer */
 .cardFooter {
   padding-top: 10px;
-  margin-top: 4px;
+  margin-top: 2px;
   border-top: 1px solid var(--border);
   display: flex;
   align-items: center;

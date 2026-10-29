@@ -24,7 +24,7 @@ body {
   background-color: var(--bg);
   color: var(--text);
   min-height: 100vh;
-  overflow-x: hidden;
+  overflow-x: clip;
   transition: background-color var(--transition-fast), color var(--transition-fast);
 }
 

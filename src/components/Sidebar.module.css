@@ -3,6 +3,26 @@
   flex-direction: column;
   gap: var(--space-4);
   width: 100%;
+  position: sticky;
+  top: 80px;
+  align-self: start;
+  max-height: calc(100vh - 96px);
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: var(--border) transparent;
+}
+
+.sidebarWrapper::-webkit-scrollbar {
+  width: 5px;
+}
+
+.sidebarWrapper::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.sidebarWrapper::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 4px;
 }
 
 .sidebarCard {

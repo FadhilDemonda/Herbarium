@@ -3,6 +3,7 @@ import { Copy, Check, Star, ArrowRight } from 'lucide-react';
 import { CategoryBadge, TypeBadge } from './Badges';
 import { copyToClipboard } from '../lib/clipboard';
 import { highlightSql, formatRelativeTime, extractTableNames } from '../lib/syntax';
+import { formatSql } from '../lib/formatter';
 import { useToast } from './Toast';
 import styles from './QueryCard.module.css';
 
@@ -37,12 +38,21 @@ export function QueryCard({
     }
   };
 
-  // Extract first 2 lines for code snippet preview
+  // Clean 2-3 lines for snippet preview
   const snippet = useMemo(() => {
     if (!query.sql_query) return '';
-    const rawLines = query.sql_query.trim().split('\n').filter((l) => l.trim().length > 0);
-    const twoLines = rawLines.slice(0, 2).join('\n');
-    return highlightSql(twoLines);
+    try {
+      const formatted = formatSql(query.sql_query);
+      const lines = formatted
+        .split('\n')
+        .map((l) => l.trimEnd())
+        .filter((l) => l.trim().length > 0);
+      const top3 = lines.slice(0, 3).join('\n');
+      return highlightSql(top3);
+    } catch {
+      const raw = query.sql_query.trim().slice(0, 160);
+      return highlightSql(raw);
+    }
   }, [query.sql_query]);
 
   // Extract table names for touchpoint badges
@@ -76,7 +86,7 @@ export function QueryCard({
       }}
       aria-label={`Buka detail query: ${query.title}`}
     >
-      {/* Active Drawer Indicator Dot */}
+      {/* Active Drawer Indicator Dot on top-right border */}
       {isActive && (
         <div
           className={styles.activeIndicatorDot}
@@ -101,7 +111,7 @@ export function QueryCard({
               aria-label={copied ? 'Tersalin' : 'Salin query SQL'}
               title="Salin SQL"
             >
-              {copied ? <Check size={15} /> : <Copy size={15} />}
+              {copied ? <Check size={16} /> : <Copy size={16} />}
             </button>
             <button
               type="button"
@@ -111,7 +121,7 @@ export function QueryCard({
               title={isFavorite ? 'Hapus dari favorit' : 'Simpan sebagai favorit'}
             >
               <Star
-                size={15}
+                size={16}
                 fill={isFavorite ? 'var(--warning)' : 'none'}
                 stroke={isFavorite ? 'var(--warning)' : 'currentColor'}
               />
@@ -127,7 +137,7 @@ export function QueryCard({
           )}
         </div>
 
-        {/* Sleek 2-line Code Pill */}
+        {/* Sleek 2-3 line Code Pill */}
         {snippet && (
           <div className={styles.codeSnippetBox} aria-hidden="true">
             <code
@@ -137,10 +147,10 @@ export function QueryCard({
           </div>
         )}
 
-        {/* Touchpoint Table Badges (if any extracted) */}
+        {/* Touchpoint Table Badges */}
         {tableNames.length > 0 && (
           <div className={styles.tableBadgesRow}>
-            <span className={styles.tablePrefix}>Tabel:</span>
+            <span className={styles.tablePrefix}>TABEL:</span>
             {tableNames.map((tbl) => (
               <span key={tbl} className={styles.tableBadge}>
                 {tbl}
