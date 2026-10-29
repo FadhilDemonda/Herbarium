@@ -1,34 +1,118 @@
+import { Folder, Database, SlidersHorizontal, RefreshCw } from 'lucide-react';
 import styles from './Sidebar.module.css';
 
-export function Sidebar({ categories, selectedCategory, onSelectCategory, totalCount }) {
+export function Sidebar({
+  categories = [],
+  selectedCategory,
+  onSelectCategory,
+  totalCount = 0,
+  typeCounts = [],
+  selectedType = 'ALL',
+  onSelectType,
+  onRefresh,
+  isSyncing = false,
+}) {
   return (
-    <aside className={styles.sidebarWrapper} aria-label="Kategori Query">
-      <nav className={styles.categoryList}>
-        <button
-          type="button"
-          className={`${styles.categoryItem} ${!selectedCategory ? styles.categoryItemActive : ''}`}
-          onClick={() => onSelectCategory('')}
-          aria-current={!selectedCategory ? 'page' : undefined}
-        >
-          <span className={styles.categoryName}>Semua Kategori</span>
-          <span className={styles.categoryCount}>{totalCount}</span>
-        </button>
+    <aside className={styles.sidebarWrapper} aria-label="Navigasi Samping">
+      {/* Box 1: Kategori Koleksi */}
+      <div className={styles.sidebarCard}>
+        <div className={styles.cardHeader}>
+          <span className={styles.headerLabel}>Kategori Koleksi</span>
+          <span className={styles.totalBadge}>{totalCount} Total</span>
+        </div>
 
-        {categories.map((cat) => (
+        <nav className={styles.categoryNav}>
           <button
-            key={cat.name}
             type="button"
-            className={`${styles.categoryItem} ${selectedCategory === cat.name ? styles.categoryItemActive : ''}`}
-            onClick={() => onSelectCategory(cat.name)}
-            aria-current={selectedCategory === cat.name ? 'page' : undefined}
+            className={`${styles.categoryBtn} ${!selectedCategory ? styles.categoryBtnActive : ''}`}
+            onClick={() => onSelectCategory('')}
+            aria-current={!selectedCategory ? 'page' : undefined}
           >
-            <span className={styles.categoryName} title={cat.name}>
-              {cat.name}
-            </span>
-            <span className={styles.categoryCount}>{cat.count}</span>
+            <div className={styles.categoryInfo}>
+              <Folder size={16} className={styles.categoryIcon} />
+              <span className={styles.categoryTitle}>Semua Kategori</span>
+            </div>
+            <span className={styles.countBadge}>{totalCount}</span>
           </button>
-        ))}
-      </nav>
+
+          {categories.map((cat) => {
+            const isActive = selectedCategory === cat.name;
+            return (
+              <button
+                key={cat.name}
+                type="button"
+                className={`${styles.categoryBtn} ${isActive ? styles.categoryBtnActive : ''}`}
+                onClick={() => onSelectCategory(cat.name)}
+                aria-current={isActive ? 'page' : undefined}
+                title={cat.name}
+              >
+                <div className={styles.categoryInfo}>
+                  <Database size={15} className={styles.categoryIcon} />
+                  <span className={styles.categoryTitle}>{cat.name}</span>
+                </div>
+                <span className={styles.countBadge}>{cat.count}</span>
+              </button>
+            );
+          })}
+        </nav>
+      </div>
+
+      {/* Box 2: Target Penggunaan (Type Scope Filter) */}
+      {typeCounts.length > 0 && onSelectType && (
+        <div className={styles.sidebarCard}>
+          <div className={styles.cardHeader}>
+            <span className={styles.headerLabel}>Target Penggunaan</span>
+            <SlidersHorizontal size={14} className={styles.headerIcon} />
+          </div>
+
+          <div className={styles.typeChips}>
+            <button
+              type="button"
+              className={`${styles.typeChip} ${selectedType === 'ALL' ? styles.typeChipActive : ''}`}
+              onClick={() => onSelectType('ALL')}
+            >
+              Semua ({totalCount})
+            </button>
+            {typeCounts.map((t) => (
+              <button
+                key={t.name}
+                type="button"
+                className={`${styles.typeChip} ${selectedType === t.name ? styles.typeChipActive : ''}`}
+                onClick={() => onSelectType(t.name)}
+              >
+                {t.name} ({t.count})
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Box 3: Quick Connection Status */}
+      <div className={styles.connectionCard}>
+        <div className={styles.connectionLeft}>
+          <span className={styles.pulseDotWrapper}>
+            <span className={styles.pulseDotPing}></span>
+            <span className={styles.pulseDot}></span>
+          </span>
+          <div className={styles.connectionMeta}>
+            <span className={styles.connectionTitle}>Google Sheets DB</span>
+            <span className={styles.connectionDesc}>
+              {isSyncing ? 'Menyinkronkan...' : 'Terhubung • SSL'}
+            </span>
+          </div>
+        </div>
+        {onRefresh && (
+          <button
+            type="button"
+            className={`${styles.refreshBtn} ${isSyncing ? styles.refreshBtnSpinning : ''}`}
+            onClick={onRefresh}
+            title="Segarkan Koneksi & Data"
+            aria-label="Segarkan data"
+          >
+            <RefreshCw size={15} />
+          </button>
+        )}
+      </div>
     </aside>
   );
 }
