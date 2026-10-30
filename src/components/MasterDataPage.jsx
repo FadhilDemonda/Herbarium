@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react';
-import { Plus, Edit2, Trash2, Tag, Layers, X, AlertTriangle, ArrowLeft } from 'lucide-react';
-import { CategoryBadge, TypeBadge, BADGE_COLOR_PRESETS } from './Badges';
+import { Plus, Edit2, Trash2, Tag, Layers, Building2, X, AlertTriangle, ArrowLeft } from 'lucide-react';
+import { CategoryBadge, TypeBadge, InstallationBadge, BADGE_COLOR_PRESETS } from './Badges';
 import { formatIndonesianDate } from '../lib/syntax';
 import { useToast } from './Toast';
 import * as api from '../api/client';
@@ -9,12 +9,13 @@ import styles from './MasterDataPage.module.css';
 export function MasterDataPage({
   categories = [],
   types = [],
+  installations = [],
   queries = [],
   onRefreshMasters,
   onRefreshQueries,
   onBackToQueries,
 }) {
-  const [activeTab, setActiveTab] = useState('categories'); // 'categories' | 'types'
+  const [activeTab, setActiveTab] = useState('categories'); // 'categories' | 'installations' | 'types'
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingItem, setEditingItem] = useState(null);
   const [deletingItem, setDeletingItem] = useState(null);
@@ -48,13 +49,58 @@ export function MasterDataPage({
     return map;
   }, [queries]);
 
+  const installationCounts = useMemo(() => {
+    const map = {};
+    for (const q of queries) {
+      const key = (q.installation || 'Umum / Semua Unit').trim().toLowerCase();
+      map[key] = (map[key] || 0) + 1;
+    }
+    return map;
+  }, [queries]);
+
+  const tabMeta = useMemo(() => {
+    if (activeTab === 'categories') {
+      return {
+        entity: 'category',
+        singular: 'Kategori',
+        lowerSingular: 'kategori',
+        defaultColor: 'terracotta',
+        fallbackName: 'Lainnya',
+        placeholder: 'Contoh: Query Superset, Laporan Rawat Jalan',
+        items: categories,
+        counts: categoryCounts,
+      };
+    }
+    if (activeTab === 'installations') {
+      return {
+        entity: 'installation',
+        singular: 'Instalasi',
+        lowerSingular: 'instalasi',
+        defaultColor: 'teal',
+        fallbackName: 'Umum / Semua Unit',
+        placeholder: 'Contoh: Rawat Jalan, Rawat Inap, IGD, Farmasi',
+        items: installations,
+        counts: installationCounts,
+      };
+    }
+    return {
+      entity: 'type',
+      singular: 'Jenis',
+      lowerSingular: 'jenis',
+      defaultColor: 'neutral',
+      fallbackName: 'Query',
+      placeholder: 'Contoh: Query, Dashboard, Materialized View',
+      items: types,
+      counts: typeCounts,
+    };
+  }, [activeTab, categories, installations, types, categoryCounts, installationCounts, typeCounts]);
+
   const openCreateModal = () => {
     setEditingItem(null);
     setFormName('');
     setFormDesc('');
-    setFormColor(activeTab === 'categories' ? 'terracotta' : 'neutral');
-    const currentList = activeTab === 'categories' ? categories : types;
-    setFormSortOrder(currentList.length + 1);
+    setFormColor(tabMeta.defaultColor);
+    setFormSortOrder(tabMeta.items.length + 1);
     setFormErrors({});
     setIsFormOpen(true);
   };
@@ -63,7 +109,7 @@ export function MasterDataPage({
     setEditingItem(item);
     setFormName(item.name || '');
     setFormDesc(item.description || '');
-    setFormColor(item.color || (activeTab === 'categories' ? 'terracotta' : 'neutral'));
+    setFormColor(item.color || tabMeta.defaultColor);
     setFormSortOrder(item.sort_order ?? 1);
     setFormErrors({});
     setIsFormOpen(true);
@@ -77,7 +123,7 @@ export function MasterDataPage({
       return;
     }
 
-    const currentList = activeTab === 'categories' ? categories : types;
+    const currentList = tabMeta.items;
     const isDuplicate = currentList.some(
       (item) =>
         (!editingItem || item.id !== editingItem.id) &&
@@ -93,7 +139,7 @@ export function MasterDataPage({
     setFormErrors({});
 
     try {
-      const entity = activeTab === 'categories' ? 'category' : 'type';
+      const entity = tabMeta.entity;
       const payload = {
         name: cleanName,
         description: formDesc.trim(),
@@ -129,10 +175,10 @@ export function MasterDataPage({
     setIsSubmitting(true);
 
     try {
-      const entity = activeTab === 'categories' ? 'category' : 'type';
+      const entity = tabMeta.entity;
       const res = await api.deleteMaster(entity, deletingItem.id);
       const reassignedCount = res?.reassignedCount ?? 0;
-      const reassignedTo = res?.reassignedTo || (entity === 'category' ? 'Lainnya' : 'Query');
+      const reassignedTo = res?.reassignedTo || tabMeta.fallbackName;
 
       showToast(
         reassignedCount > 0
@@ -150,11 +196,9 @@ export function MasterDataPage({
     }
   };
 
-  const currentItems = activeTab === 'categories' ? categories : types;
+  const currentItems = tabMeta.items;
   const deletingItemUsageCount = deletingItem
-    ? (activeTab === 'categories' ? categoryCounts : typeCounts)[
-    deletingItem.name.trim().toLowerCase()
-    ] || 0
+    ? tabMeta.counts[deletingItem.name.trim().toLowerCase()] || 0
     : 0;
 
   return (
@@ -175,7 +219,7 @@ export function MasterDataPage({
             <h1 className={styles.pageTitle}>Master Data</h1>
           </div>
           <p className={styles.pageSubtitle}>
-            Kelola master kategori dan jenis query untuk memudahkan pengelompokan pustaka.
+            Kelola master kategori, instalasi/unit layanan, dan jenis query untuk pengelompokan pustaka.
           </p>
         </div>
 
@@ -185,9 +229,7 @@ export function MasterDataPage({
           onClick={openCreateModal}
         >
           <Plus size={16} />
-          <span>
-            {activeTab === 'categories' ? 'Tambah Kategori' : 'Tambah Jenis'}
-          </span>
+          <span>Tambah {tabMeta.singular}</span>
         </button>
       </div>
 
@@ -203,6 +245,18 @@ export function MasterDataPage({
           <Tag size={16} />
           <span>Master Kategori</span>
           <span className={styles.tabBadge}>{categories.length}</span>
+        </button>
+
+        <button
+          type="button"
+          role="tab"
+          aria-selected={activeTab === 'installations'}
+          className={`${styles.tabBtn} ${activeTab === 'installations' ? styles.tabBtnActive : ''}`}
+          onClick={() => setActiveTab('installations')}
+        >
+          <Building2 size={16} />
+          <span>Master Instalasi</span>
+          <span className={styles.tabBadge}>{installations.length}</span>
         </button>
 
         <button
@@ -235,15 +289,12 @@ export function MasterDataPage({
             {currentItems.length === 0 ? (
               <tr>
                 <td colSpan={6} style={{ textAlign: 'center', padding: '32px', color: 'var(--text-muted)' }}>
-                  Belum ada data {activeTab === 'categories' ? 'kategori' : 'jenis'}.
+                  Belum ada data {tabMeta.lowerSingular}.
                 </td>
               </tr>
             ) : (
               currentItems.map((item) => {
-                const count =
-                  (activeTab === 'categories' ? categoryCounts : typeCounts)[
-                  (item.name || '').trim().toLowerCase()
-                  ] || 0;
+                const count = tabMeta.counts[(item.name || '').trim().toLowerCase()] || 0;
 
                 return (
                   <tr key={item.id} className={styles.tr}>
@@ -254,6 +305,8 @@ export function MasterDataPage({
                       <div className={styles.badgeWrapper}>
                         {activeTab === 'categories' ? (
                           <CategoryBadge category={item.name} color={item.color} />
+                        ) : activeTab === 'installations' ? (
+                          <InstallationBadge installation={item.name} color={item.color} />
                         ) : (
                           <TypeBadge type={item.name} color={item.color} />
                         )}
@@ -310,8 +363,8 @@ export function MasterDataPage({
             <div className={styles.modalHeader}>
               <h2 className={styles.modalTitle}>
                 {editingItem
-                  ? `Edit ${activeTab === 'categories' ? 'Kategori' : 'Jenis'}`
-                  : `Tambah ${activeTab === 'categories' ? 'Kategori' : 'Jenis'} Baru`}
+                  ? `Edit ${tabMeta.singular}`
+                  : `Tambah ${tabMeta.singular} Baru`}
               </h2>
               <button
                 type="button"
@@ -335,17 +388,13 @@ export function MasterDataPage({
                 {/* Nama */}
                 <div className={styles.formGroup}>
                   <label htmlFor="master-name" className={styles.label}>
-                    Nama {activeTab === 'categories' ? 'Kategori' : 'Jenis'}
+                    Nama {tabMeta.singular}
                   </label>
                   <input
                     id="master-name"
                     type="text"
                     className={styles.input}
-                    placeholder={
-                      activeTab === 'categories'
-                        ? 'Contoh: Query Superset, Laporan Rawat Jalan'
-                        : 'Contoh: Query, Dashboard, Materialized View'
-                    }
+                    placeholder={tabMeta.placeholder}
                     value={formName}
                     onChange={(e) => setFormName(e.target.value)}
                     disabled={isSubmitting}
@@ -416,6 +465,11 @@ export function MasterDataPage({
                         category={formName.trim() || 'Nama Kategori'}
                         color={formColor}
                       />
+                    ) : activeTab === 'installations' ? (
+                      <InstallationBadge
+                        installation={formName.trim() || 'Nama Instalasi'}
+                        color={formColor}
+                      />
                     ) : (
                       <TypeBadge
                         type={formName.trim() || 'Nama Jenis'}
@@ -459,7 +513,7 @@ export function MasterDataPage({
           <div className={styles.modalContent} onClick={(e) => e.stopPropagation()}>
             <div className={styles.modalHeader}>
               <h2 className={styles.modalTitle}>
-                Hapus {activeTab === 'categories' ? 'Kategori' : 'Jenis'}
+                Hapus {tabMeta.singular}
               </h2>
               <button
                 type="button"
@@ -484,7 +538,7 @@ export function MasterDataPage({
                   menggunakan item ini. Jika dihapus, seluruh query tersebut
                   akan otomatis dialihkan ke{' '}
                   <strong>
-                    &quot;{activeTab === 'categories' ? 'Lainnya' : 'Query'}&quot;
+                    &quot;{tabMeta.fallbackName}&quot;
                   </strong>
                   .
                 </div>

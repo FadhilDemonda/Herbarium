@@ -1,12 +1,12 @@
 import { useState } from 'react';
 import { Copy, Check } from 'lucide-react';
-import { CategoryBadge, TypeBadge } from './Badges';
+import { CategoryBadge, TypeBadge, InstallationBadge } from './Badges';
 import { copyToClipboard } from '../lib/clipboard';
 import { formatIndonesianDate } from '../lib/syntax';
 import { useToast } from './Toast';
 import styles from './TableView.module.css';
 
-export function TableView({ queries, onSelect, categoryColorMap = {}, typeColorMap = {} }) {
+export function TableView({ queries, onSelect, categoryColorMap = {}, typeColorMap = {}, installationColorMap = {} }) {
   const [copiedId, setCopiedId] = useState(null);
   const { showToast } = useToast();
 
@@ -29,6 +29,7 @@ export function TableView({ queries, onSelect, categoryColorMap = {}, typeColorM
           <tr>
             <th className={styles.th}>Judul Query</th>
             <th className={styles.th}>Kategori</th>
+            <th className={styles.th}>Instalasi</th>
             <th className={styles.th}>Jenis</th>
             <th className={styles.th}>Diperbarui</th>
             <th className={`${styles.th} ${styles.actionCell}`}>Aksi</th>
@@ -39,6 +40,7 @@ export function TableView({ queries, onSelect, categoryColorMap = {}, typeColorM
             const isCopied = copiedId === query.id;
             const catColor = categoryColorMap[(query.category || '').trim().toLowerCase()];
             const typColor = typeColorMap[(query.type || '').trim().toLowerCase()];
+            const instColor = installationColorMap[(query.installation || '').trim().toLowerCase()];
 
             return (
               <tr
@@ -60,6 +62,9 @@ export function TableView({ queries, onSelect, categoryColorMap = {}, typeColorM
                 </td>
                 <td className={styles.td}>
                   <CategoryBadge category={query.category} color={catColor} />
+                </td>
+                <td className={styles.td}>
+                  <InstallationBadge installation={query.installation} color={instColor} />
                 </td>
                 <td className={styles.td}>
                   <TypeBadge type={query.type} color={typColor} />

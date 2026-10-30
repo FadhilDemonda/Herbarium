@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
 import Fuse from 'fuse.js';
 import { Search } from 'lucide-react';
-import { CategoryBadge, TypeBadge } from './Badges';
+import { CategoryBadge, TypeBadge, InstallationBadge } from './Badges';
 import styles from './CommandPalette.module.css';
 
 export function CommandPalette({ isOpen, onClose, queries, onSelectQuery }) {
@@ -14,9 +14,10 @@ export function CommandPalette({ isOpen, onClose, queries, onSelectQuery }) {
   const fuse = useMemo(() => {
     return new Fuse(queries, {
       keys: [
-        { name: 'title', weight: 0.5 },
-        { name: 'category', weight: 0.3 },
-        { name: 'sql_query', weight: 0.2 },
+        { name: 'title', weight: 0.45 },
+        { name: 'category', weight: 0.25 },
+        { name: 'installation', weight: 0.15 },
+        { name: 'sql_query', weight: 0.15 },
       ],
       threshold: 0.4,
       ignoreLocation: true,
@@ -120,6 +121,9 @@ export function CommandPalette({ isOpen, onClose, queries, onSelectQuery }) {
                 <span className={styles.resultTitle}>{query.title}</span>
                 <div className={styles.resultBadges}>
                   <CategoryBadge category={query.category} />
+                  {query.installation && (
+                    <InstallationBadge installation={query.installation} />
+                  )}
                   <TypeBadge type={query.type} />
                 </div>
               </div>

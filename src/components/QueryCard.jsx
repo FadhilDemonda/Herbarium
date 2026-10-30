@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react';
 import { Copy, Check, Star, ArrowRight } from 'lucide-react';
-import { CategoryBadge, TypeBadge } from './Badges';
+import { CategoryBadge, TypeBadge, InstallationBadge } from './Badges';
 import { copyToClipboard } from '../lib/clipboard';
 import { highlightSql, formatRelativeTime, extractTableNames } from '../lib/syntax';
 import { formatSql } from '../lib/formatter';
@@ -13,6 +13,7 @@ export function QueryCard({
   isActive = false,
   categoryColor,
   typeColor,
+  installationColor,
   isFavorite = false,
   onToggleFavorite,
 }) {
@@ -100,6 +101,9 @@ export function QueryCard({
         <div className={styles.topRow}>
           <div className={styles.badgeGroup}>
             <CategoryBadge category={query.category} color={categoryColor} />
+            {query.installation && (
+              <InstallationBadge installation={query.installation} color={installationColor} />
+            )}
             <TypeBadge type={query.type} color={typeColor} />
           </div>
 

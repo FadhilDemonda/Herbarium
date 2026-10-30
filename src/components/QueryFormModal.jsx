@@ -4,6 +4,15 @@ import { formatSql } from '../lib/formatter';
 import styles from './QueryFormModal.module.css';
 
 const DEFAULT_TYPES = ['Query', 'Dashboard'];
+const DEFAULT_INSTALLATIONS = [
+  'Rawat Jalan',
+  'Rawat Inap',
+  'IGD',
+  'Farmasi',
+  'Kamar Operasi (OK)',
+  'Radiologi & Lab',
+  'Umum / Semua Unit',
+];
 
 export function QueryFormModal({
   isOpen,
@@ -11,6 +20,7 @@ export function QueryFormModal({
   onSubmit,
   existingCategories = [],
   existingTypes = DEFAULT_TYPES,
+  existingInstallations = DEFAULT_INSTALLATIONS,
   initialData = null,
 }) {
   const isEdit = !!initialData;
@@ -26,12 +36,18 @@ export function QueryFormModal({
   const [isNewType, setIsNewType] = useState(false);
   const [newTypeName, setNewTypeName] = useState('');
 
+  // Installation State
+  const [installation, setInstallation] = useState('Umum / Semua Unit');
+  const [isNewInstallation, setIsNewInstallation] = useState(false);
+  const [newInstallationName, setNewInstallationName] = useState('');
+
   const [sqlQuery, setSqlQuery] = useState('');
   const [errors, setErrors] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const titleInputRef = useRef(null);
 
   const availableTypes = existingTypes.length > 0 ? existingTypes : DEFAULT_TYPES;
+  const availableInstallations = existingInstallations.length > 0 ? existingInstallations : DEFAULT_INSTALLATIONS;
 
   // Initialize or reset form state
   useEffect(() => {
@@ -63,6 +79,18 @@ export function QueryFormModal({
           setIsNewType(true);
           setNewTypeName(t);
         }
+
+        // Installation
+        const inst = initialData.installation || 'Umum / Semua Unit';
+        if (availableInstallations.includes(inst)) {
+          setInstallation(inst);
+          setIsNewInstallation(false);
+          setNewInstallationName('');
+        } else {
+          setInstallation('__new__');
+          setIsNewInstallation(true);
+          setNewInstallationName(inst);
+        }
       } else {
         setTitle('');
         setCategory(existingCategories[0] || '');
@@ -73,6 +101,10 @@ export function QueryFormModal({
         setIsNewType(false);
         setNewTypeName('');
 
+        setInstallation(availableInstallations[0] || 'Umum / Semua Unit');
+        setIsNewInstallation(false);
+        setNewInstallationName('');
+
         setSqlQuery('');
       }
       setErrors({});
@@ -82,7 +114,7 @@ export function QueryFormModal({
       document.body.classList.remove('modal-open');
     }
     return () => document.body.classList.remove('modal-open');
-  }, [isOpen, initialData, existingCategories, availableTypes]);
+  }, [isOpen, initialData, existingCategories, availableTypes, availableInstallations]);
 
   // Handle Esc key
   useEffect(() => {
@@ -119,6 +151,17 @@ export function QueryFormModal({
     }
   };
 
+  const handleInstallationChange = (e) => {
+    const val = e.target.value;
+    if (val === '__new__') {
+      setIsNewInstallation(true);
+      setInstallation('__new__');
+    } else {
+      setIsNewInstallation(false);
+      setInstallation(val);
+    }
+  };
+
   const validate = () => {
     const newErrors = {};
     if (!title.trim()) {
@@ -137,6 +180,11 @@ export function QueryFormModal({
       newErrors.type = 'Jenis query wajib diisi atau dipilih';
     }
 
+    const finalInstallation = isNewInstallation ? newInstallationName.trim() : installation.trim();
+    if (!finalInstallation || finalInstallation === '__new__') {
+      newErrors.installation = 'Instalasi / unit layanan wajib diisi atau dipilih';
+    }
+
     if (!sqlQuery.trim()) {
       newErrors.sqlQuery = 'Query SQL wajib diisi';
     }
@@ -152,12 +200,14 @@ export function QueryFormModal({
     setIsSubmitting(true);
     const finalCategory = isNewCategory ? newCategoryName.trim() : category.trim();
     const finalType = isNewType ? newTypeName.trim() : type.trim();
+    const finalInstallation = isNewInstallation ? newInstallationName.trim() : installation.trim();
 
     try {
       await onSubmit({
         title: title.trim(),
         category: finalCategory,
         type: finalType,
+        installation: finalInstallation,
         sql_query: sqlQuery,
       });
       onClose();
@@ -261,7 +311,45 @@ export function QueryFormModal({
             )}
           </div>
 
-          {/* 3. Jenis */}
+          {/* 3. Instalasi / Unit Layanan */}
+          <div className={styles.formGroup}>
+            <label htmlFor="query-installation" className={styles.label}>
+              Instalasi / Unit Layanan
+            </label>
+            <select
+              id="query-installation"
+              className={styles.select}
+              value={installation}
+              onChange={handleInstallationChange}
+              disabled={isSubmitting}
+            >
+              {availableInstallations.map((inst) => (
+                <option key={inst} value={inst}>
+                  {inst}
+                </option>
+              ))}
+              <option value="__new__">+ Tambah instalasi baru...</option>
+            </select>
+
+            {isNewInstallation && (
+              <input
+                type="text"
+                className={`${styles.input} ${styles.customCategoryInput}`}
+                placeholder="Nama instalasi baru (misal: Rawat Jalan, IGD, Farmasi)"
+                value={newInstallationName}
+                onChange={(e) => setNewInstallationName(e.target.value)}
+                disabled={isSubmitting}
+                autoFocus
+              />
+            )}
+            {errors.installation && (
+              <span className={styles.errorMessage}>
+                <AlertCircle size={14} /> {errors.installation}
+              </span>
+            )}
+          </div>
+
+          {/* 4. Jenis */}
           <div className={styles.formGroup}>
             <label htmlFor="query-type" className={styles.label}>
               Jenis

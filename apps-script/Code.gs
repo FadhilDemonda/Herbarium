@@ -22,6 +22,7 @@ var CONFIG = {
   SHEET_USERS: 'users',
   SHEET_CATEGORIES: 'categories',
   SHEET_TYPES: 'types',
+  SHEET_INSTALLATIONS: 'installations',
   SESSION_TTL_SEC: 6 * 60 * 60, // 6 hours
   MAX_FAILED_ATTEMPTS: 5,
   LOCKOUT_TTL_SEC: 15 * 60,     // 15 minutes
@@ -117,6 +118,14 @@ function doPost(e) {
       case 'delete_type':
         return handleDeleteMaster(body, 'type');
 
+      // Master Installation CRUD
+      case 'create_installation':
+        return handleCreateMaster(body, 'installation');
+      case 'update_installation':
+        return handleUpdateMaster(body, 'installation');
+      case 'delete_installation':
+        return handleDeleteMaster(body, 'installation');
+
       default:
         return json_({
           ok: false,
@@ -179,12 +188,18 @@ function handleList() {
     var idVal = row[headerMap['id']];
     if (!idVal) continue; // skip blank rows
 
+    var titleStr = String(row[headerMap['title']] || '');
+    var sqlStr = String(row[headerMap['sql_query']] || '');
+    var rawInst = headerMap['installation'] !== undefined ? String(row[headerMap['installation']] || '').trim() : '';
+    var instVal = rawInst || inferInstallation_(titleStr, sqlStr);
+
     data.push({
       id: String(idVal),
-      title: String(row[headerMap['title']] || ''),
+      title: titleStr,
       category: String(row[headerMap['category']] || ''),
       type: String(row[headerMap['type']] || 'Query'),
-      sql_query: String(row[headerMap['sql_query']] || ''),
+      installation: instVal,
+      sql_query: sqlStr,
       created_at: formatIso(row[headerMap['created_at']]),
       updated_at: formatIso(row[headerMap['updated_at']]),
       updated_by: String(row[headerMap['updated_by']] || '')
@@ -356,16 +371,23 @@ function handleCreate(body) {
     var headers = values[0].map(function (h) { return String(h).trim(); });
     var headerMap = getHeaderMap(headers);
 
+    if (headerMap['installation'] === undefined) {
+      sheet.getRange(1, headers.length + 1).setValue('installation').setFontWeight('bold');
+      headers.push('installation');
+      headerMap['installation'] = headers.length - 1;
+    }
+
     var now = new Date().toISOString();
     var id = 'qry_' + new Date().getTime().toString(36) + '_' + Math.random().toString(36).substring(2, 7);
 
     var catName = payload.category.trim();
     var typeName = payload.type.trim();
+    var instName = (payload.installation || '').toString().trim() || inferInstallation_(payload.title, payload.sql_query);
 
-    // Auto-register category & type to master sheets if not yet present (fail-safe)
+    // Auto-register category, type & installation to master sheets if not yet present (fail-safe)
     var masterChanged = false;
     try {
-      masterChanged = autoRegisterMasterIfNeeded_(ss, catName, typeName, auth.username);
+      masterChanged = autoRegisterMasterIfNeeded_(ss, catName, typeName, instName, auth.username);
     } catch (e) {
       Logger.log('Auto-register master warning on create: ' + e);
     }
@@ -379,6 +401,7 @@ function handleCreate(body) {
     newRow[headerMap['title']] = payload.title.trim();
     newRow[headerMap['category']] = catName;
     newRow[headerMap['type']] = typeName;
+    newRow[headerMap['installation']] = instName;
     newRow[headerMap['sql_query']] = payload.sql_query;
     newRow[headerMap['created_at']] = now;
     newRow[headerMap['updated_at']] = now;
@@ -404,6 +427,7 @@ function handleCreate(body) {
         title: payload.title.trim(),
         category: catName,
         type: typeName,
+        installation: instName,
         sql_query: payload.sql_query,
         created_at: now,
         updated_at: now,
@@ -457,6 +481,11 @@ function handleUpdate(body) {
     var values = sheet.getDataRange().getValues();
     var headers = values[0].map(function (h) { return String(h).trim(); });
     var headerMap = getHeaderMap(headers);
+    if (headerMap['installation'] === undefined) {
+      sheet.getRange(1, headers.length + 1).setValue('installation').setFontWeight('bold');
+      headers.push('installation');
+      headerMap['installation'] = headers.length - 1;
+    }
     var idCol = headerMap['id'];
 
     var targetRowIndex = -1;
@@ -476,22 +505,27 @@ function handleUpdate(body) {
 
     var catName = payload.category.trim();
     var typeName = payload.type.trim();
+    var instName = (payload.installation || '').toString().trim() || inferInstallation_(payload.title, payload.sql_query);
 
-    // Auto-register category & type to master sheets if not yet present (fail-safe)
+    // Auto-register category, type & installation to master sheets if not yet present (fail-safe)
     var masterChanged = false;
     try {
-      masterChanged = autoRegisterMasterIfNeeded_(ss, catName, typeName, auth.username);
+      masterChanged = autoRegisterMasterIfNeeded_(ss, catName, typeName, instName, auth.username);
     } catch (e) {
       Logger.log('Auto-register master warning: ' + e);
     }
 
     var now = new Date().toISOString();
     var targetRow = values[targetRowIndex - 1];
+    while (targetRow.length < headers.length) {
+      targetRow.push('');
+    }
     var created_at = formatIso(targetRow[headerMap['created_at']]);
 
     targetRow[headerMap['title']] = payload.title.trim();
     targetRow[headerMap['category']] = catName;
     targetRow[headerMap['type']] = typeName;
+    targetRow[headerMap['installation']] = instName;
     targetRow[headerMap['sql_query']] = payload.sql_query;
     targetRow[headerMap['updated_at']] = now;
     targetRow[headerMap['updated_by']] = auth.username;
@@ -515,6 +549,7 @@ function handleUpdate(body) {
         title: payload.title.trim(),
         category: catName,
         type: typeName,
+        installation: instName,
         sql_query: payload.sql_query,
         created_at: created_at,
         updated_at: now,
@@ -596,11 +631,42 @@ function handleDelete(body) {
 }
 
 // ============================================================================
-// MASTER DATA (CATEGORIES & TYPES) HANDLERS
+// MASTER DATA (CATEGORIES, TYPES & INSTALLATIONS) HANDLERS
 // ============================================================================
 
 /**
- * List all master categories and types
+ * Helper to resolve entity configuration
+ */
+function getMasterEntityConfig_(entity) {
+  if (entity === 'category') {
+    return {
+      sheetName: CONFIG.SHEET_CATEGORIES,
+      defaultColor: 'terracotta',
+      prefix: 'cat_',
+      queryColumnName: 'category',
+      fallbackName: 'Lainnya'
+    };
+  }
+  if (entity === 'installation') {
+    return {
+      sheetName: CONFIG.SHEET_INSTALLATIONS,
+      defaultColor: 'teal',
+      prefix: 'ins_',
+      queryColumnName: 'installation',
+      fallbackName: 'Umum / Semua Unit'
+    };
+  }
+  return {
+    sheetName: CONFIG.SHEET_TYPES,
+    defaultColor: 'neutral',
+    prefix: 'typ_',
+    queryColumnName: 'type',
+    fallbackName: 'Query'
+  };
+}
+
+/**
+ * List all master categories, types, and installations
  * GET ?action=masters
  */
 function handleListMasters() {
@@ -608,7 +674,10 @@ function handleListMasters() {
   var cached = cache.get('MASTERS_LIST_DATA');
   if (cached) {
     try {
-      return json_({ ok: true, data: JSON.parse(cached) });
+      var parsed = JSON.parse(cached);
+      if (parsed && Array.isArray(parsed.installations)) {
+        return json_({ ok: true, data: parsed });
+      }
     } catch (e) {}
   }
 
@@ -617,10 +686,12 @@ function handleListMasters() {
 
   var catData = readMasterSheet_(ss, CONFIG.SHEET_CATEGORIES, 'terracotta');
   var typData = readMasterSheet_(ss, CONFIG.SHEET_TYPES, 'neutral');
+  var instData = readMasterSheet_(ss, CONFIG.SHEET_INSTALLATIONS, 'teal');
 
   var result = {
     categories: catData,
-    types: typData
+    types: typData,
+    installations: instData
   };
 
   try {
@@ -631,7 +702,7 @@ function handleListMasters() {
 }
 
 /**
- * Create a new master category or type
+ * Create a new master category, type, or installation
  */
 function handleCreateMaster(body, entity) {
   var auth = requireAuth(body.token);
@@ -650,9 +721,10 @@ function handleCreateMaster(body, entity) {
     return json_({ ok: false, error: { code: 'VALIDATION_ERROR', message: 'Nama maksimal 100 karakter' } });
   }
 
-  var sheetName = entity === 'category' ? CONFIG.SHEET_CATEGORIES : CONFIG.SHEET_TYPES;
-  var defaultColor = entity === 'category' ? 'terracotta' : 'neutral';
-  var prefix = entity === 'category' ? 'cat_' : 'typ_';
+  var entCfg = getMasterEntityConfig_(entity);
+  var sheetName = entCfg.sheetName;
+  var defaultColor = entCfg.defaultColor;
+  var prefix = entCfg.prefix;
 
   var lock = LockService.getScriptLock();
   try {
@@ -723,7 +795,7 @@ function handleCreateMaster(body, entity) {
 }
 
 /**
- * Update an existing master category or type
+ * Update an existing master category, type, or installation
  * Includes cascade update to sheet 'queries' if name has changed
  */
 function handleUpdateMaster(body, entity) {
@@ -745,8 +817,9 @@ function handleUpdateMaster(body, entity) {
     return json_({ ok: false, error: { code: 'VALIDATION_ERROR', message: 'Nama wajib diisi' } });
   }
 
-  var sheetName = entity === 'category' ? CONFIG.SHEET_CATEGORIES : CONFIG.SHEET_TYPES;
-  var queryColumnName = entity === 'category' ? 'category' : 'type';
+  var entCfg = getMasterEntityConfig_(entity);
+  var sheetName = entCfg.sheetName;
+  var queryColumnName = entCfg.queryColumnName;
 
   var lock = LockService.getScriptLock();
   try {
@@ -790,7 +863,7 @@ function handleUpdateMaster(body, entity) {
 
     var now = new Date().toISOString();
     var description = (payload.description !== undefined ? payload.description : '').toString().trim();
-    var color = (payload.color || (entity === 'category' ? 'terracotta' : 'neutral')).toString().trim();
+    var color = (payload.color || entCfg.defaultColor).toString().trim();
     var sortOrder = parseInt(payload.sort_order, 10);
     if (isNaN(sortOrder)) sortOrder = 0;
 
@@ -832,8 +905,8 @@ function handleUpdateMaster(body, entity) {
 }
 
 /**
- * Delete a master category or type
- * Includes reassigning any referencing queries in sheet 'queries' to default ('Lainnya' / 'Query')
+ * Delete a master category, type, or installation
+ * Includes reassigning any referencing queries in sheet 'queries' to default ('Lainnya' / 'Query' / 'Umum / Semua Unit')
  */
 function handleDeleteMaster(body, entity) {
   var auth = requireAuth(body.token);
@@ -844,9 +917,10 @@ function handleDeleteMaster(body, entity) {
     return json_({ ok: false, error: { code: 'VALIDATION_ERROR', message: 'ID master wajib disertakan' } });
   }
 
-  var sheetName = entity === 'category' ? CONFIG.SHEET_CATEGORIES : CONFIG.SHEET_TYPES;
-  var queryColumnName = entity === 'category' ? 'category' : 'type';
-  var fallbackTargetName = entity === 'category' ? 'Lainnya' : 'Query';
+  var entCfg = getMasterEntityConfig_(entity);
+  var sheetName = entCfg.sheetName;
+  var queryColumnName = entCfg.queryColumnName;
+  var fallbackTargetName = entCfg.fallbackName;
 
   var lock = LockService.getScriptLock();
   try {
@@ -1021,13 +1095,39 @@ function json_(obj) {
  * Initialize headers for sheet queries
  */
 function initQueriesHeader(sheet) {
-  var headers = ['id', 'title', 'category', 'type', 'sql_query', 'created_at', 'updated_at', 'updated_by'];
+  var headers = ['id', 'title', 'category', 'type', 'installation', 'sql_query', 'created_at', 'updated_at', 'updated_by'];
   sheet.appendRow(headers);
   sheet.getRange(1, 1, 1, headers.length).setFontWeight('bold');
 }
 
 /**
- * Initialize headers for master sheets (categories / types)
+ * Infer default hospital installation from query title or SQL text
+ */
+function inferInstallation_(title, sql) {
+  var text = ((title || '') + ' ' + (sql || '')).toLowerCase();
+  if (text.indexOf('operasi') !== -1 || text.indexOf('bedah') !== -1 || text.indexOf('lap_operasi') !== -1 || text.indexOf('pisau') !== -1) {
+    return 'Kamar Operasi (OK)';
+  }
+  if (text.indexOf('radiologi') !== -1 || text.indexOf('lab') !== -1 || text.indexOf('mcu') !== -1 || text.indexOf('ro ') !== -1) {
+    return 'Radiologi & Lab';
+  }
+  if (text.indexOf('resep') !== -1 || text.indexOf('obat') !== -1 || text.indexOf('farmasi') !== -1 || text.indexOf('apotek') !== -1) {
+    return 'Farmasi';
+  }
+  if (text.indexOf('igd') !== -1 || text.indexOf('gawat darurat') !== -1 || text.indexOf('triase') !== -1) {
+    return 'IGD';
+  }
+  if (text.indexOf('inap') !== -1 || text.indexOf('ranap') !== -1 || text.indexOf('bangsal') !== -1 || text.indexOf('kamar') !== -1 || text.indexOf('tempat tidur') !== -1) {
+    return 'Rawat Inap';
+  }
+  if (text.indexOf('rajal') !== -1 || text.indexOf('rawat jalan') !== -1 || text.indexOf('poli') !== -1 || text.indexOf('antrol') !== -1 || text.indexOf('antrean') !== -1 || text.indexOf('kontrol') !== -1 || text.indexOf('rujukan') !== -1 || text.indexOf('prb') !== -1) {
+    return 'Rawat Jalan';
+  }
+  return 'Umum / Semua Unit';
+}
+
+/**
+ * Initialize headers for master sheets (categories / types / installations)
  */
 function initMasterHeader(sheet) {
   var headers = ['id', 'name', 'description', 'color', 'sort_order', 'created_at', 'updated_at', 'updated_by'];
@@ -1096,6 +1196,12 @@ function ensureMasterSheets_(ss) {
       initMasterHeader(typSheet);
     }
 
+    var instSheet = ss.getSheetByName(CONFIG.SHEET_INSTALLATIONS);
+    if (!instSheet) {
+      instSheet = ss.insertSheet(CONFIG.SHEET_INSTALLATIONS);
+      initMasterHeader(instSheet);
+    }
+
     var now = new Date().toISOString();
 
     // Auto-seed categories if empty
@@ -1152,13 +1258,27 @@ function ensureMasterSheets_(ss) {
       ];
       typSheet.getRange(2, 1, typeRows.length, 8).setValues(typeRows);
     }
+
+    // Auto-seed installations if empty
+    if (instSheet.getLastRow() <= 1) {
+      var instRows = [
+        ['ins_rajal', 'Rawat Jalan', 'Poliklinik spesialis, umum, gigi, rehabilitasi medik, dan antrean online (JKN/MJKN)', 'teal', 1, now, now, 'system'],
+        ['ins_ranap', 'Rawat Inap', 'Bangsal perawatan inap, intensif (ICU/NICU/PICU), dan manajemen tempat tidur', 'forest', 2, now, now, 'system'],
+        ['ins_igd', 'IGD', 'Instalasi Gawat Darurat, triase, dan observasi emergensi', 'terracotta', 3, now, now, 'system'],
+        ['ins_farmasi', 'Farmasi', 'Pelayanan resep obat, apotek rawat jalan/inap, dan logistik perbekalan farmasi', 'amber', 4, now, now, 'system'],
+        ['ins_ok', 'Kamar Operasi (OK)', 'Instalasi Bedah Sentral, tindakan operasi, dan anestesi', 'purple', 5, now, now, 'system'],
+        ['ins_penunjang', 'Radiologi & Lab', 'Instalasi penunjang diagnostik, laboratorium patologi, radiologi, dan MCU', 'blue', 6, now, now, 'system'],
+        ['ins_umum', 'Umum / Semua Unit', 'Query lintas instalasi, manajemen RS, klaim BPJS, keuangan, dan SDM', 'neutral', 7, now, now, 'system']
+      ];
+      instSheet.getRange(2, 1, instRows.length, 8).setValues(instRows);
+    }
   } catch (err) {
     Logger.log('ensureMasterSheets_ warning: ' + err);
   }
 }
 
 /**
- * Cascade rename a category or type across all matching rows in sheet queries
+ * Cascade rename a category, type, or installation across all matching rows in sheet queries
  */
 function cascadeRenameInQueries_(ss, columnName, oldName, newName) {
   var sheet = ss.getSheetByName(CONFIG.SHEET_QUERIES);
@@ -1168,11 +1288,22 @@ function cascadeRenameInQueries_(ss, columnName, oldName, newName) {
   var headers = values[0].map(function (h) { return String(h).trim(); });
   var headerMap = getHeaderMap(headers);
   var colIndex = headerMap[columnName];
+
+  if (colIndex === undefined && columnName === 'installation') {
+    sheet.getRange(1, headers.length + 1).setValue('installation').setFontWeight('bold');
+    colIndex = headers.length;
+  }
   if (colIndex === undefined) return 0;
 
   var count = 0;
+  var titleIdx = headerMap['title'];
+  var sqlIdx = headerMap['sql_query'];
+
   for (var i = 1; i < values.length; i++) {
     var val = String(values[i][colIndex] || '').trim();
+    if (!val && columnName === 'installation') {
+      val = inferInstallation_(values[i][titleIdx], values[i][sqlIdx]);
+    }
     if (val.toLowerCase() === oldName.toLowerCase()) {
       sheet.getRange(i + 1, colIndex + 1).setValue(newName);
       count++;
@@ -1183,11 +1314,11 @@ function cascadeRenameInQueries_(ss, columnName, oldName, newName) {
 }
 
 /**
- * Ensure fallback master (e.g. 'Lainnya' or 'Query') exists in master sheet
+ * Ensure fallback master (e.g. 'Lainnya', 'Query', or 'Umum / Semua Unit') exists in master sheet
  */
 function ensureFallbackMasterExists_(ss, entity, fallbackName) {
-  var sheetName = entity === 'category' ? CONFIG.SHEET_CATEGORIES : CONFIG.SHEET_TYPES;
-  var sheet = ss.getSheetByName(sheetName);
+  var entCfg = getMasterEntityConfig_(entity);
+  var sheet = ss.getSheetByName(entCfg.sheetName);
   if (!sheet) return;
 
   var values = sheet.getDataRange().getValues();
@@ -1204,9 +1335,8 @@ function ensureFallbackMasterExists_(ss, entity, fallbackName) {
   }
 
   var now = new Date().toISOString();
-  var prefix = entity === 'category' ? 'cat_' : 'typ_';
   sheet.appendRow([
-    prefix + 'fallback_' + Math.random().toString(36).substring(2, 6),
+    entCfg.prefix + 'fallback_' + Math.random().toString(36).substring(2, 6),
     fallbackName,
     'Master ' + entity + ' bawaan',
     'neutral',
@@ -1218,79 +1348,50 @@ function ensureFallbackMasterExists_(ss, entity, fallbackName) {
 }
 
 /**
- * Auto-register category or type to master sheet if not yet present
+ * Auto-register category, type, or installation to master sheet if not yet present
  */
-function autoRegisterMasterIfNeeded_(ss, catName, typeName, username) {
+function autoRegisterMasterIfNeeded_(ss, catName, typeName, instName, username) {
   try {
     ensureMasterSheets_(ss);
     var changed = false;
     var now = new Date().toISOString();
 
-    // Check category
-    if (catName) {
-      var catSheet = ss.getSheetByName(CONFIG.SHEET_CATEGORIES);
-      if (catSheet) {
-        var catValues = catSheet.getDataRange().getValues();
-        if (catValues && catValues.length > 0) {
-          var catMap = getHeaderMap(catValues[0].map(function (h) { return String(h).trim(); }));
-          var nameCol = catMap['name'];
-          if (nameCol !== undefined) {
-            var catExists = false;
-            for (var c = 1; c < catValues.length; c++) {
-              if (String(catValues[c][nameCol] || '').trim().toLowerCase() === catName.toLowerCase()) {
-                catExists = true;
-                break;
-              }
-            }
-            if (!catExists) {
-              catSheet.appendRow([
-                'cat_' + new Date().getTime().toString(36) + '_' + Math.random().toString(36).substring(2, 6),
-                catName,
-                '',
-                'terracotta',
-                catValues.length,
-                now,
-                now,
-                username || 'system'
-              ]);
-              changed = true;
-            }
-          }
+    var checks = [
+      { name: catName, sheetName: CONFIG.SHEET_CATEGORIES, prefix: 'cat_', color: 'terracotta' },
+      { name: typeName, sheetName: CONFIG.SHEET_TYPES, prefix: 'typ_', color: 'neutral' },
+      { name: instName, sheetName: CONFIG.SHEET_INSTALLATIONS, prefix: 'ins_', color: 'teal' }
+    ];
+
+    for (var k = 0; k < checks.length; k++) {
+      var item = checks[k];
+      if (!item.name) continue;
+      var sheet = ss.getSheetByName(item.sheetName);
+      if (!sheet) continue;
+      var values = sheet.getDataRange().getValues();
+      if (!values || values.length === 0) continue;
+      var map = getHeaderMap(values[0].map(function (h) { return String(h).trim(); }));
+      var nameCol = map['name'];
+      if (nameCol === undefined) continue;
+
+      var exists = false;
+      for (var r = 1; r < values.length; r++) {
+        if (String(values[r][nameCol] || '').trim().toLowerCase() === item.name.toLowerCase()) {
+          exists = true;
+          break;
         }
       }
-    }
-
-    // Check type
-    if (typeName) {
-      var typSheet = ss.getSheetByName(CONFIG.SHEET_TYPES);
-      if (typSheet) {
-        var typValues = typSheet.getDataRange().getValues();
-        if (typValues && typValues.length > 0) {
-          var typMap = getHeaderMap(typValues[0].map(function (h) { return String(h).trim(); }));
-          var tNameCol = typMap['name'];
-          if (tNameCol !== undefined) {
-            var typExists = false;
-            for (var t = 1; t < typValues.length; t++) {
-              if (String(typValues[t][tNameCol] || '').trim().toLowerCase() === typeName.toLowerCase()) {
-                typExists = true;
-                break;
-              }
-            }
-            if (!typExists) {
-              typSheet.appendRow([
-                'typ_' + new Date().getTime().toString(36) + '_' + Math.random().toString(36).substring(2, 6),
-                typeName,
-                '',
-                'neutral',
-                typValues.length,
-                now,
-                now,
-                username || 'system'
-              ]);
-              changed = true;
-            }
-          }
-        }
+      if (!exists) {
+        sheet.appendRow([
+          item.prefix + new Date().getTime().toString(36) + '_' + Math.random().toString(36).substring(2, 6),
+          item.name,
+          '',
+          item.color,
+          values.length,
+          now,
+          now,
+          username || 'system'
+        ]);
+        changed = true;
       }
     }
 

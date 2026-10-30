@@ -1,4 +1,4 @@
-import { Folder, Database, SlidersHorizontal, RefreshCw } from 'lucide-react';
+import { Folder, Database, SlidersHorizontal, RefreshCw, Building2 } from 'lucide-react';
 import styles from './Sidebar.module.css';
 
 export function Sidebar({
@@ -9,6 +9,9 @@ export function Sidebar({
   typeCounts = [],
   selectedType = 'ALL',
   onSelectType,
+  installationCounts = [],
+  selectedInstallation = 'ALL',
+  onSelectInstallation,
   onRefresh,
   isSyncing = false,
 }) {
@@ -57,7 +60,37 @@ export function Sidebar({
         </nav>
       </div>
 
-      {/* Box 2: Target Penggunaan (Type Scope Filter) */}
+      {/* Box 2: Instalasi / Unit Layanan */}
+      {installationCounts.length > 0 && onSelectInstallation && (
+        <div className={styles.sidebarCard}>
+          <div className={styles.cardHeader}>
+            <span className={styles.headerLabel}>Instalasi / Unit Layanan</span>
+            <Building2 size={14} className={styles.headerIcon} />
+          </div>
+
+          <div className={styles.typeChips}>
+            <button
+              type="button"
+              className={`${styles.typeChip} ${selectedInstallation === 'ALL' ? styles.typeChipActive : ''}`}
+              onClick={() => onSelectInstallation('ALL')}
+            >
+              Semua ({totalCount})
+            </button>
+            {installationCounts.map((inst) => (
+              <button
+                key={inst.name}
+                type="button"
+                className={`${styles.typeChip} ${selectedInstallation === inst.name ? styles.typeChipActive : ''}`}
+                onClick={() => onSelectInstallation(inst.name)}
+              >
+                {inst.name} ({inst.count})
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Box 3: Target Penggunaan (Type Scope Filter) */}
       {typeCounts.length > 0 && onSelectType && (
         <div className={styles.sidebarCard}>
           <div className={styles.cardHeader}>

@@ -14,7 +14,7 @@ function escapeCsvCell(val) {
 export function exportToCsv(queries, filename = 'herbarium-queries.csv') {
   if (!queries || queries.length === 0) return;
 
-  const headers = ['id', 'title', 'category', 'type', 'sql_query', 'created_at', 'updated_at', 'updated_by'];
+  const headers = ['id', 'title', 'category', 'type', 'installation', 'sql_query', 'created_at', 'updated_at', 'updated_by'];
   const rows = [headers.join(',')];
 
   for (const q of queries) {

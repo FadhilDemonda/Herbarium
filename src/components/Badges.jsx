@@ -11,7 +11,8 @@ export const BADGE_COLOR_PRESETS = [
 ];
 
 export function resolveBadgeColorClass(color, defaultColor = 'neutral') {
-  const c = color || defaultColor;
+  const aliasMap = { purple: 'berry', blue: 'slate' };
+  const c = aliasMap[color] || color || defaultColor;
   return styles[`color_${c}`] || styles[`color_${defaultColor}`] || styles.baseBadge;
 }
 
@@ -31,6 +32,16 @@ export function TypeBadge({ type, color, className = '' }) {
   return (
     <span className={`${styles.baseBadge} ${colorClass} ${className}`.trim()}>
       {type || 'Query'}
+    </span>
+  );
+}
+
+export function InstallationBadge({ installation, color = 'teal', className = '' }) {
+  if (!installation) return null;
+  const colorClass = resolveBadgeColorClass(color, 'teal');
+  return (
+    <span className={`${styles.baseBadge} ${colorClass} ${className}`.trim()}>
+      {installation}
     </span>
   );
 }

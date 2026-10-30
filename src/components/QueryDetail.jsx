@@ -13,7 +13,7 @@ import {
   ExternalLink,
   Layers
 } from 'lucide-react';
-import { CategoryBadge, TypeBadge } from './Badges';
+import { CategoryBadge, TypeBadge, InstallationBadge } from './Badges';
 import { highlightSql, formatIndonesianDate, extractTableNames, extractJinjaParams } from '../lib/syntax';
 import { copyToClipboard } from '../lib/clipboard';
 import { useToast } from './Toast';
@@ -26,7 +26,8 @@ export function QueryDetail({
   onEdit,
   onDelete,
   categoryColor,
-  typeColor
+  typeColor,
+  installationColor
 }) {
   const [copied, setCopied] = useState(false);
   const { showToast } = useToast();
@@ -109,6 +110,9 @@ export function QueryDetail({
           <div className={styles.headerTopRow}>
             <div className={styles.badgeStrip}>
               <CategoryBadge category={query.category} color={categoryColor} />
+              {query.installation && (
+                <InstallationBadge installation={query.installation} color={installationColor} />
+              )}
               <TypeBadge type={query.type} color={typeColor} />
               <span className={styles.idBadge}>ID: {query.id}</span>
               <span className={styles.verifiedBadge}>

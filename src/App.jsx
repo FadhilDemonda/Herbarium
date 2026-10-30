@@ -53,13 +53,15 @@ export function App() {
     });
   }, []);
 
-  // Master Data state - Categories & Types
+  // Master Data state - Categories, Types & Installations
   const [masterCategories, setMasterCategories] = useState(() => api.getLocalCategories());
   const [masterTypes, setMasterTypes] = useState(() => api.getLocalTypes());
+  const [masterInstallations, setMasterInstallations] = useState(() => api.getLocalInstallations());
 
   // Filters state (synced with URL)
   const [selectedCategory, setSelectedCategory] = useState('');
   const [selectedType, setSelectedType] = useState('ALL');
+  const [selectedInstallation, setSelectedInstallation] = useState('ALL');
   const [searchQuery, setSearchQuery] = useState('');
 
   // View mode & Sorting state
@@ -114,11 +116,13 @@ export function App() {
       const params = new URLSearchParams(window.location.search);
       const cat = params.get('category') || '';
       const t = params.get('type') || 'ALL';
+      const inst = params.get('installation') || 'ALL';
       const q = params.get('q') || '';
       const detailId = params.get('detail');
 
       if (cat) setSelectedCategory(cat);
       if (t) setSelectedType(t);
+      if (inst) setSelectedInstallation(inst);
       if (q) setSearchQuery(q);
 
       // If detail ID in URL, we'll open it once queries are loaded
@@ -131,11 +135,12 @@ export function App() {
   }, []);
 
   // Sync state to URL
-  const updateUrlParams = useCallback((newCat, newType, newQ, detailId) => {
+  const updateUrlParams = useCallback((newCat, newType, newInst, newQ, detailId) => {
     try {
       const params = new URLSearchParams();
       if (newCat) params.set('category', newCat);
       if (newType && newType !== 'ALL') params.set('type', newType);
+      if (newInst && newInst !== 'ALL') params.set('installation', newInst);
       if (newQ) params.set('q', newQ);
       if (detailId) params.set('detail', detailId);
 
@@ -177,7 +182,7 @@ export function App() {
     }
   }, [queries.length]);
 
-  // Fetch Master Data (Categories & Types)
+  // Fetch Master Data (Categories, Types & Installations)
   const fetchMasters = useCallback(async () => {
     try {
       const masters = await api.listMasters();
@@ -187,6 +192,9 @@ export function App() {
         }
         if (Array.isArray(masters.types)) {
           setMasterTypes(masters.types);
+        }
+        if (Array.isArray(masters.installations)) {
+          setMasterInstallations(masters.installations);
         }
       }
     } catch (err) {
@@ -233,6 +241,30 @@ export function App() {
     }));
   }, [queries, masterTypes]);
 
+  // Dynamic Installation Counts for Sidebar Instalasi / Unit Layanan
+  const installationCounts = useMemo(() => {
+    const map = {};
+    queries.forEach((q) => {
+      const inst = q.installation || 'Umum / Semua Unit';
+      map[inst] = (map[inst] || 0) + 1;
+    });
+    const list = [];
+    const seen = new Set();
+    masterInstallations.forEach((mi) => {
+      seen.add(mi.name);
+      list.push({
+        name: mi.name,
+        count: map[mi.name] || 0,
+      });
+    });
+    Object.entries(map).forEach(([name, count]) => {
+      if (!seen.has(name)) {
+        list.push({ name, count });
+      }
+    });
+    return list;
+  }, [queries, masterInstallations]);
+
   // Badge Color Mappings
   const categoryColorMap = useMemo(() => {
     const map = {};
@@ -249,6 +281,14 @@ export function App() {
     });
     return map;
   }, [masterTypes]);
+
+  const installationColorMap = useMemo(() => {
+    const map = {};
+    masterInstallations.forEach((inst) => {
+      map[(inst.name || '').trim().toLowerCase()] = inst.color;
+    });
+    return map;
+  }, [masterInstallations]);
 
   // Compute Categories with Counts (Ordered by masterCategories sort_order)
   const categoriesWithCounts = useMemo(() => {
@@ -286,35 +326,46 @@ export function App() {
   // Handle Filter Updates
   const handleCategorySelect = (cat) => {
     setSelectedCategory(cat);
-    updateUrlParams(cat, selectedType, searchQuery, selectedQueryDetail?.id);
+    updateUrlParams(cat, selectedType, selectedInstallation, searchQuery, selectedQueryDetail?.id);
   };
 
   const handleTypeSelect = (t) => {
     setSelectedType(t);
-    updateUrlParams(selectedCategory, t, searchQuery, selectedQueryDetail?.id);
+    updateUrlParams(selectedCategory, t, selectedInstallation, searchQuery, selectedQueryDetail?.id);
+  };
+
+  const handleInstallationSelect = (inst) => {
+    setSelectedInstallation(inst);
+    updateUrlParams(selectedCategory, selectedType, inst, searchQuery, selectedQueryDetail?.id);
   };
 
   const handleResetFilters = () => {
     setSelectedCategory('');
     setSelectedType('ALL');
+    setSelectedInstallation('ALL');
     setSearchQuery('');
-    updateUrlParams('', 'ALL', '', selectedQueryDetail?.id);
+    updateUrlParams('', 'ALL', 'ALL', '', selectedQueryDetail?.id);
   };
 
-  const hasActiveFilters = !!selectedCategory || selectedType !== 'ALL' || !!searchQuery;
+  const hasActiveFilters = !!selectedCategory || selectedType !== 'ALL' || selectedInstallation !== 'ALL' || !!searchQuery;
 
   // Active filter label description
   const activeFilterText = useMemo(() => {
-    if (selectedCategory) return `kategori=${selectedCategory}`;
-    if (selectedType !== 'ALL') return `jenis=${selectedType}`;
-    if (searchQuery) return `q="${searchQuery}"`;
-    return 'status=aktif';
-  }, [selectedCategory, selectedType, searchQuery]);
+    const parts = [];
+    if (selectedCategory) parts.push(`kategori=${selectedCategory}`);
+    if (selectedInstallation !== 'ALL') parts.push(`instalasi=${selectedInstallation}`);
+    if (selectedType !== 'ALL') parts.push(`jenis=${selectedType}`);
+    if (searchQuery) parts.push(`q="${searchQuery}"`);
+    return parts.length > 0 ? parts.join(' • ') : 'status=aktif';
+  }, [selectedCategory, selectedInstallation, selectedType, searchQuery]);
 
   // Filter queries based on criteria
   const filteredQueries = useMemo(() => {
     return queries.filter((q) => {
       if (selectedCategory && q.category !== selectedCategory) {
+        return false;
+      }
+      if (selectedInstallation !== 'ALL' && (q.installation || 'Umum / Semua Unit') !== selectedInstallation) {
         return false;
       }
       if (selectedType !== 'ALL' && q.type !== selectedType) {
@@ -324,14 +375,15 @@ export function App() {
         const s = searchQuery.toLowerCase();
         const matchTitle = (q.title || '').toLowerCase().includes(s);
         const matchCat = (q.category || '').toLowerCase().includes(s);
+        const matchInst = (q.installation || '').toLowerCase().includes(s);
         const matchSql = (q.sql_query || '').toLowerCase().includes(s);
-        if (!matchTitle && !matchCat && !matchSql) {
+        if (!matchTitle && !matchCat && !matchInst && !matchSql) {
           return false;
         }
       }
       return true;
     });
-  }, [queries, selectedCategory, selectedType, searchQuery]);
+  }, [queries, selectedCategory, selectedInstallation, selectedType, searchQuery]);
 
   // Sort queries based on sortBy
   const sortedQueries = useMemo(() => {
@@ -358,13 +410,13 @@ export function App() {
   // Open & Close Detail
   const handleOpenDetail = useCallback((query) => {
     setSelectedQueryDetail(query);
-    updateUrlParams(selectedCategory, selectedType, searchQuery, query.id);
-  }, [selectedCategory, selectedType, searchQuery, updateUrlParams]);
+    updateUrlParams(selectedCategory, selectedType, selectedInstallation, searchQuery, query.id);
+  }, [selectedCategory, selectedType, selectedInstallation, searchQuery, updateUrlParams]);
 
   const handleCloseDetail = useCallback(() => {
     setSelectedQueryDetail(null);
-    updateUrlParams(selectedCategory, selectedType, searchQuery, null);
-  }, [selectedCategory, selectedType, searchQuery, updateUrlParams]);
+    updateUrlParams(selectedCategory, selectedType, selectedInstallation, searchQuery, null);
+  }, [selectedCategory, selectedType, selectedInstallation, searchQuery, updateUrlParams]);
 
   // CRUD Handlers for Queries
   const handleCreateNewQuery = () => {
@@ -436,6 +488,7 @@ export function App() {
         <MasterDataPage
           categories={masterCategories}
           types={masterTypes}
+          installations={masterInstallations}
           queries={queries}
           onRefreshMasters={fetchMasters}
           onRefreshQueries={fetchQueries}
@@ -463,6 +516,9 @@ export function App() {
               typeCounts={typeCounts}
               selectedType={selectedType}
               onSelectType={handleTypeSelect}
+              installationCounts={installationCounts}
+              selectedInstallation={selectedInstallation}
+              onSelectInstallation={handleInstallationSelect}
               onRefresh={fetchQueries}
               isSyncing={isSyncing}
             />
@@ -603,6 +659,7 @@ export function App() {
                   onSelect={handleOpenDetail}
                   categoryColorMap={categoryColorMap}
                   typeColorMap={typeColorMap}
+                  installationColorMap={installationColorMap}
                 />
               ) : (
                 <div className={styles.cardGrid}>
@@ -614,6 +671,7 @@ export function App() {
                       isActive={selectedQueryDetail?.id === query.id}
                       categoryColor={categoryColorMap[(query.category || '').trim().toLowerCase()]}
                       typeColor={typeColorMap[(query.type || '').trim().toLowerCase()]}
+                      installationColor={installationColorMap[(query.installation || '').trim().toLowerCase()]}
                       isFavorite={favorites.includes(query.id)}
                       onToggleFavorite={handleToggleFavorite}
                     />
@@ -678,6 +736,7 @@ export function App() {
           }}
           categoryColor={categoryColorMap[(selectedQueryDetail.category || '').trim().toLowerCase()]}
           typeColor={typeColorMap[(selectedQueryDetail.type || '').trim().toLowerCase()]}
+          installationColor={installationColorMap[(selectedQueryDetail.installation || '').trim().toLowerCase()]}
         />
       )}
 
@@ -687,6 +746,7 @@ export function App() {
         onSubmit={handleFormSubmit}
         existingCategories={existingCategoryNames}
         existingTypes={masterTypes.map((t) => t.name)}
+        existingInstallations={installationCounts.map((i) => i.name)}
         initialData={editingQuery}
       />
 

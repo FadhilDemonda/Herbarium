@@ -13,6 +13,7 @@
 import initialSeedQueries from '../../data/queries.json';
 import initialSeedCategories from '../../data/categories.json';
 import initialSeedTypes from '../../data/types.json';
+import initialSeedInstallations from '../../data/installations.json';
 
 const GAS_URL = import.meta.env.VITE_GAS_URL;
 
@@ -22,8 +23,38 @@ const STORAGE_KEYS = {
   EXPIRES_AT: 'herbarium_session_expires',
   LOCAL_QUERIES: 'herbarium_local_queries_cache',
   LOCAL_CATEGORIES: 'herbarium_local_categories_cache',
-  LOCAL_TYPES: 'herbarium_local_types_cache'
+  LOCAL_TYPES: 'herbarium_local_types_cache',
+  LOCAL_INSTALLATIONS: 'herbarium_local_installations_cache'
 };
+
+/**
+ * Infer default hospital installation from query title or SQL text
+ */
+export function inferInstallationFromQuery(q) {
+  if (q && q.installation && String(q.installation).trim()) {
+    return String(q.installation).trim();
+  }
+  const text = `${q?.title || ''} ${q?.sql_query || ''}`.toLowerCase();
+  if (text.includes('operasi') || text.includes('bedah') || text.includes('lap_operasi') || text.includes('pisau')) {
+    return 'Kamar Operasi (OK)';
+  }
+  if (text.includes('radiologi') || text.includes('lab') || text.includes('mcu') || text.includes('ro ')) {
+    return 'Radiologi & Lab';
+  }
+  if (text.includes('resep') || text.includes('obat') || text.includes('farmasi') || text.includes('apotek')) {
+    return 'Farmasi';
+  }
+  if (text.includes('igd') || text.includes('gawat darurat') || text.includes('triase')) {
+    return 'IGD';
+  }
+  if (text.includes('inap') || text.includes('ranap') || text.includes('bangsal') || text.includes('kamar') || text.includes('tempat tidur')) {
+    return 'Rawat Inap';
+  }
+  if (text.includes('rajal') || text.includes('rawat jalan') || text.includes('poli') || text.includes('antrol') || text.includes('antrean') || text.includes('kontrol') || text.includes('rujukan') || text.includes('prb')) {
+    return 'Rawat Jalan';
+  }
+  return 'Umum / Semua Unit';
+}
 
 // Listeners for 401 UNAUTHORIZED events
 const authListeners = new Set();
@@ -94,12 +125,20 @@ export function getLocalQueries() {
     const cached = localStorage.getItem(STORAGE_KEYS.LOCAL_QUERIES);
     if (cached) {
       const parsed = JSON.parse(cached);
-      if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        return parsed.map(q => ({
+          ...q,
+          installation: inferInstallationFromQuery(q)
+        }));
+      }
     }
   } catch (e) {
     console.warn('Failed to parse cached local queries:', e);
   }
-  return initialSeedQueries || [];
+  return (initialSeedQueries || []).map(q => ({
+    ...q,
+    installation: inferInstallationFromQuery(q)
+  }));
 }
 
 export function saveLocalQueries(queries) {
@@ -150,6 +189,58 @@ export function saveLocalTypes(types) {
   } catch (e) {
     console.warn('Failed to save local types:', e);
   }
+}
+
+export function getLocalInstallations() {
+  try {
+    const cached = localStorage.getItem(STORAGE_KEYS.LOCAL_INSTALLATIONS);
+    if (cached) {
+      const parsed = JSON.parse(cached);
+      if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+    }
+  } catch (e) {
+    console.warn('Failed to parse cached local installations:', e);
+  }
+  return initialSeedInstallations || [];
+}
+
+export function saveLocalInstallations(installations) {
+  try {
+    localStorage.setItem(STORAGE_KEYS.LOCAL_INSTALLATIONS, JSON.stringify(installations));
+  } catch (e) {
+    console.warn('Failed to save local installations:', e);
+  }
+}
+
+function getMasterMeta_(entity) {
+  if (entity === 'category') {
+    return {
+      prefix: 'cat_',
+      defaultColor: 'terracotta',
+      prop: 'category',
+      fallbackName: 'Lainnya',
+      getList: getLocalCategories,
+      saveList: saveLocalCategories,
+    };
+  }
+  if (entity === 'installation') {
+    return {
+      prefix: 'ins_',
+      defaultColor: 'teal',
+      prop: 'installation',
+      fallbackName: 'Umum / Semua Unit',
+      getList: getLocalInstallations,
+      saveList: saveLocalInstallations,
+    };
+  }
+  return {
+    prefix: 'typ_',
+    defaultColor: 'neutral',
+    prop: 'type',
+    fallbackName: 'Query',
+    getList: getLocalTypes,
+    saveList: saveLocalTypes,
+  };
 }
 
 /**
@@ -217,7 +308,12 @@ export async function listQueries() {
     const url = `${GAS_URL}?action=list`;
     const data = await sendGasRequest('GET', url);
     if (Array.isArray(data)) {
-      saveLocalQueries(data);
+      const normalized = data.map(q => ({
+        ...q,
+        installation: inferInstallationFromQuery(q)
+      }));
+      saveLocalQueries(normalized);
+      return normalized;
     }
     return data;
   } catch (err) {
@@ -227,13 +323,14 @@ export async function listQueries() {
 }
 
 /**
- * List all master data (Categories & Types)
+ * List all master data (Categories, Types & Installations)
  */
 export async function listMasters() {
   if (!isGasConfigured()) {
     return {
       categories: getLocalCategories(),
-      types: getLocalTypes()
+      types: getLocalTypes(),
+      installations: getLocalInstallations(),
     };
   }
 
@@ -243,13 +340,27 @@ export async function listMasters() {
     if (data && Array.isArray(data.categories) && Array.isArray(data.types)) {
       saveLocalCategories(data.categories);
       saveLocalTypes(data.types);
+      const instList = Array.isArray(data.installations) && data.installations.length > 0
+        ? data.installations
+        : getLocalInstallations();
+      saveLocalInstallations(instList);
+      return {
+        categories: data.categories,
+        types: data.types,
+        installations: instList,
+      };
     }
-    return data;
+    return {
+      categories: getLocalCategories(),
+      types: getLocalTypes(),
+      installations: getLocalInstallations(),
+    };
   } catch (err) {
     console.warn('[Herbarium] Gagal mengambil master dari GAS, beralih ke cache lokal:', err);
     return {
       categories: getLocalCategories(),
-      types: getLocalTypes()
+      types: getLocalTypes(),
+      installations: getLocalInstallations(),
     };
   }
 }
@@ -308,17 +419,20 @@ export async function createQuery(payload) {
     throw err;
   }
 
+  const catName = payload.category.trim();
+  const typeName = (payload.type || 'Query').trim();
+  const instName = (payload.installation || '').trim() || inferInstallationFromQuery(payload);
+
   if (!isGasConfigured()) {
     const local = getLocalQueries();
     const now = new Date().toISOString();
-    const catName = payload.category.trim();
-    const typeName = (payload.type || 'Query').trim();
 
     const newQuery = {
       id: `qry_${Date.now().toString(36)}_${Math.random().toString(36).substring(2, 7)}`,
       title: payload.title.trim(),
       category: catName,
       type: typeName,
+      installation: instName,
       sql_query: payload.sql_query,
       created_at: now,
       updated_at: now,
@@ -327,23 +441,30 @@ export async function createQuery(payload) {
     local.unshift(newQuery);
     saveLocalQueries(local);
 
-    // Auto-register to local categories if missing
+    // Auto-register to local masters if missing
     autoRegisterLocalMaster_('category', catName, session.username);
     autoRegisterLocalMaster_('type', typeName, session.username);
+    autoRegisterLocalMaster_('installation', instName, session.username);
 
     return newQuery;
   }
 
-  return sendGasRequest('POST', GAS_URL, {
+  const created = await sendGasRequest('POST', GAS_URL, {
     action: 'create',
     token: session.token,
     payload: {
       title: payload.title,
       category: payload.category,
       type: payload.type,
+      installation: instName,
       sql_query: payload.sql_query,
     },
   });
+
+  return {
+    ...created,
+    installation: created?.installation || instName,
+  };
 }
 
 /**
@@ -358,6 +479,10 @@ export async function updateQuery(id, payload) {
     throw err;
   }
 
+  const catName = payload.category.trim();
+  const typeName = (payload.type || 'Query').trim();
+  const instName = (payload.installation || '').trim() || inferInstallationFromQuery(payload);
+
   if (!isGasConfigured()) {
     const local = getLocalQueries();
     const idx = local.findIndex(q => q.id === id);
@@ -366,14 +491,13 @@ export async function updateQuery(id, payload) {
       err.code = 'NOT_FOUND';
       throw err;
     }
-    const catName = payload.category.trim();
-    const typeName = (payload.type || 'Query').trim();
 
     const updated = {
       ...local[idx],
       title: payload.title.trim(),
       category: catName,
       type: typeName,
+      installation: instName,
       sql_query: payload.sql_query,
       updated_at: new Date().toISOString(),
       updated_by: session.username || 'editor',
@@ -383,11 +507,12 @@ export async function updateQuery(id, payload) {
 
     autoRegisterLocalMaster_('category', catName, session.username);
     autoRegisterLocalMaster_('type', typeName, session.username);
+    autoRegisterLocalMaster_('installation', instName, session.username);
 
     return updated;
   }
 
-  return sendGasRequest('POST', GAS_URL, {
+  const updated = await sendGasRequest('POST', GAS_URL, {
     action: 'update',
     token: session.token,
     id,
@@ -395,9 +520,15 @@ export async function updateQuery(id, payload) {
       title: payload.title,
       category: payload.category,
       type: payload.type,
+      installation: instName,
       sql_query: payload.sql_query,
     },
   });
+
+  return {
+    ...updated,
+    installation: updated?.installation || instName,
+  };
 }
 
 /**
@@ -427,12 +558,12 @@ export async function deleteQuery(id) {
 }
 
 // ============================================================================
-// API METHODS - MASTER DATA CRUD (CATEGORIES & TYPES)
+// API METHODS - MASTER DATA CRUD (CATEGORIES, TYPES & INSTALLATIONS)
 // ============================================================================
 
 /**
- * Create Master (Category or Type)
- * @param {'category' | 'type'} entity
+ * Create Master (Category, Type, or Installation)
+ * @param {'category' | 'type' | 'installation'} entity
  * @param {{ name: string, description?: string, color?: string, sort_order?: number }} payload
  */
 export async function createMaster(entity, payload) {
@@ -445,7 +576,8 @@ export async function createMaster(entity, payload) {
   }
 
   if (!isGasConfigured()) {
-    const list = entity === 'category' ? getLocalCategories() : getLocalTypes();
+    const meta = getMasterMeta_(entity);
+    const list = meta.getList();
     const name = (payload.name || '').trim();
     if (!name) throw new Error('Nama wajib diisi');
 
@@ -455,10 +587,10 @@ export async function createMaster(entity, payload) {
 
     const now = new Date().toISOString();
     const newItem = {
-      id: `${entity === 'category' ? 'cat_' : 'typ_'}${Date.now().toString(36)}_${Math.random().toString(36).substring(2, 6)}`,
+      id: `${meta.prefix}${Date.now().toString(36)}_${Math.random().toString(36).substring(2, 6)}`,
       name,
       description: (payload.description || '').trim(),
-      color: payload.color || (entity === 'category' ? 'terracotta' : 'neutral'),
+      color: payload.color || meta.defaultColor,
       sort_order: Number.isInteger(payload.sort_order) ? payload.sort_order : list.length + 1,
       created_at: now,
       updated_at: now,
@@ -466,8 +598,7 @@ export async function createMaster(entity, payload) {
     };
 
     list.push(newItem);
-    if (entity === 'category') saveLocalCategories(list);
-    else saveLocalTypes(list);
+    meta.saveList(list);
 
     return newItem;
   }
@@ -480,9 +611,9 @@ export async function createMaster(entity, payload) {
 }
 
 /**
- * Update Master (Category or Type)
+ * Update Master (Category, Type, or Installation)
  * Performs cascade update on queries if name changed
- * @param {'category' | 'type'} entity
+ * @param {'category' | 'type' | 'installation'} entity
  * @param {string} id
  * @param {{ name: string, description?: string, color?: string, sort_order?: number }} payload
  */
@@ -496,7 +627,8 @@ export async function updateMaster(entity, id, payload) {
   }
 
   if (!isGasConfigured()) {
-    const list = entity === 'category' ? getLocalCategories() : getLocalTypes();
+    const meta = getMasterMeta_(entity);
+    const list = meta.getList();
     const idx = list.findIndex(item => item.id === id);
     if (idx === -1) {
       throw new Error('Item master tidak ditemukan');
@@ -521,14 +653,13 @@ export async function updateMaster(entity, id, payload) {
     };
 
     list[idx] = updatedItem;
-    if (entity === 'category') saveLocalCategories(list);
-    else saveLocalTypes(list);
+    meta.saveList(list);
 
     // CASCADE UPDATE in local queries
     let cascadeCount = 0;
     if (oldName.toLowerCase() !== newName.toLowerCase()) {
       const queries = getLocalQueries();
-      const prop = entity === 'category' ? 'category' : 'type';
+      const prop = meta.prop;
       queries.forEach(q => {
         if ((q[prop] || '').toLowerCase() === oldName.toLowerCase()) {
           q[prop] = newName;
@@ -552,9 +683,9 @@ export async function updateMaster(entity, id, payload) {
 }
 
 /**
- * Delete Master (Category or Type)
- * Performs reassign on queries to fallback ('Lainnya' / 'Query')
- * @param {'category' | 'type'} entity
+ * Delete Master (Category, Type, or Installation)
+ * Performs reassign on queries to fallback ('Lainnya' / 'Query' / 'Umum / Semua Unit')
+ * @param {'category' | 'type' | 'installation'} entity
  * @param {string} id
  */
 export async function deleteMaster(entity, id) {
@@ -566,10 +697,11 @@ export async function deleteMaster(entity, id) {
     throw err;
   }
 
-  const fallbackName = entity === 'category' ? 'Lainnya' : 'Query';
+  const meta = getMasterMeta_(entity);
+  const fallbackName = meta.fallbackName;
 
   if (!isGasConfigured()) {
-    const list = entity === 'category' ? getLocalCategories() : getLocalTypes();
+    const list = meta.getList();
     const target = list.find(item => item.id === id);
     if (!target) {
       throw new Error('Item master tidak ditemukan');
@@ -580,7 +712,7 @@ export async function deleteMaster(entity, id) {
     // Ensure fallback exists
     if (!filtered.some(item => item.name.toLowerCase() === fallbackName.toLowerCase())) {
       filtered.push({
-        id: `${entity === 'category' ? 'cat_' : 'typ_'}fallback`,
+        id: `${meta.prefix}fallback`,
         name: fallbackName,
         description: `Master ${entity} bawaan`,
         color: 'neutral',
@@ -591,13 +723,12 @@ export async function deleteMaster(entity, id) {
       });
     }
 
-    if (entity === 'category') saveLocalCategories(filtered);
-    else saveLocalTypes(filtered);
+    meta.saveList(filtered);
 
     // REASSIGN in local queries
     let reassignedCount = 0;
     const queries = getLocalQueries();
-    const prop = entity === 'category' ? 'category' : 'type';
+    const prop = meta.prop;
     queries.forEach(q => {
       if ((q[prop] || '').toLowerCase() === target.name.toLowerCase()) {
         q[prop] = fallbackName;
@@ -623,21 +754,21 @@ export async function deleteMaster(entity, id) {
  */
 function autoRegisterLocalMaster_(entity, name, username) {
   if (!name) return;
-  const list = entity === 'category' ? getLocalCategories() : getLocalTypes();
+  const meta = getMasterMeta_(entity);
+  const list = meta.getList();
   if (list.some(item => item.name.toLowerCase() === name.toLowerCase())) {
     return;
   }
   const now = new Date().toISOString();
   list.push({
-    id: `${entity === 'category' ? 'cat_' : 'typ_'}${Date.now().toString(36)}_${Math.random().toString(36).substring(2, 6)}`,
+    id: `${meta.prefix}${Date.now().toString(36)}_${Math.random().toString(36).substring(2, 6)}`,
     name,
     description: '',
-    color: entity === 'category' ? 'terracotta' : 'neutral',
+    color: meta.defaultColor,
     sort_order: list.length + 1,
     created_at: now,
     updated_at: now,
     updated_by: username || 'editor',
   });
-  if (entity === 'category') saveLocalCategories(list);
-  else saveLocalTypes(list);
+  meta.saveList(list);
 }
