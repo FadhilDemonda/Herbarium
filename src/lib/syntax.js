@@ -74,19 +74,28 @@ export function formatRelativeTime(isoStr) {
  */
 export function extractTableNames(sql) {
   if (!sql || typeof sql !== 'string') return [];
+  const cteNames = new Set();
+  const cteRegex = /\b(?:WITH|,)\s*([a-zA-Z0-9_]+)\s+AS\s*\(/gi;
+  let cteMatch;
+  while ((cteMatch = cteRegex.exec(sql)) !== null) {
+    cteNames.add(cteMatch[1].toUpperCase());
+  }
+
   const tables = new Set();
   const regex = /\b(?:FROM|JOIN)\s+([a-zA-Z0-9_."`]+)/gi;
   let match;
   while ((match = regex.exec(sql)) !== null) {
     const raw = match[1].replace(/[`"']/g, '').trim();
+    const upper = raw.toUpperCase();
     if (
       raw &&
-      !['(', 'SELECT', 'LATERAL', 'UNNEST', 'GENERATE_SERIES', 'VALUES'].includes(raw.toUpperCase())
+      !['(', 'SELECT', 'LATERAL', 'UNNEST', 'GENERATE_SERIES', 'VALUES'].includes(upper) &&
+        !cteNames.has(upper)
     ) {
       tables.add(raw);
     }
   }
-  return Array.from(tables).slice(0, 5);
+  return Array.from(tables).slice(0, 10);
 }
 
 /**

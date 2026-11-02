@@ -124,6 +124,10 @@
   margin: 0;
 }
 
+:global([data-theme="dark"]) .drawerTitle {
+  color: #F4F4F5;
+}
+
 .drawerDesc {
   font-size: 0.8125rem;
   color: var(--text-muted);

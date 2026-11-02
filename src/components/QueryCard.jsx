@@ -3,7 +3,6 @@ import { Copy, Check, Star, ArrowRight } from 'lucide-react';
 import { CategoryBadge, TypeBadge, InstallationBadge } from './Badges';
 import { copyToClipboard } from '../lib/clipboard';
 import { highlightSql, formatRelativeTime, extractTableNames } from '../lib/syntax';
-import { formatSql } from '../lib/formatter';
 import { useToast } from './Toast';
 import styles from './QueryCard.module.css';
 
@@ -39,27 +38,34 @@ export function QueryCard({
     }
   };
 
-  // Clean 2-3 lines for snippet preview
+  // Sleek single-line micro-snippet preview
   const snippet = useMemo(() => {
     if (!query.sql_query) return '';
-    try {
-      const formatted = formatSql(query.sql_query);
-      const lines = formatted
-        .split('\n')
-        .map((l) => l.trimEnd())
-        .filter((l) => l.trim().length > 0);
-      const top3 = lines.slice(0, 3).join('\n');
-      return highlightSql(top3);
-    } catch {
-      const raw = query.sql_query.trim().slice(0, 160);
-      return highlightSql(raw);
-    }
+    const lines = query.sql_query
+      .split('\n')
+      .map((l) => l.trim())
+      .filter((l) => l.length > 0 && !l.startsWith('--'));
+    const sourceText = lines.length > 0 ? lines.join(' ') : query.sql_query.trim();
+    const compact = sourceText.replace(/\s+/g, ' ').slice(0, 110);
+    return highlightSql(compact);
   }, [query.sql_query]);
+
+  // Dialect / query mode badge inside snippet box
+  const sqlModeLabel = useMemo(() => {
+    const raw = (query.sql_query || '').trim();
+    if (/^\s*WITH\b/i.test(raw)) return 'CTE View';
+    if (/\{\{.*?\}\}/.test(raw)) return 'Superset Jinja';
+    if (query.type === 'Dashboard') return 'Superset ETL';
+    return 'PostgreSQL';
+  }, [query.sql_query, query.type]);
 
   // Extract table names for touchpoint badges
   const tableNames = useMemo(() => {
     return extractTableNames(query.sql_query);
   }, [query.sql_query]);
+
+  const visibleTables = useMemo(() => tableNames.slice(0, 2), [tableNames]);
+  const extraTableCount = Math.max(0, tableNames.length - 2);
 
   // Pseudorandom realistic copy count derived from ID for consistency
   const copyCount = useMemo(() => {
@@ -97,7 +103,7 @@ export function QueryCard({
       )}
 
       <div className={styles.cardContent}>
-        {/* Top Badges & Card Actions */}
+        {/* Header Tags & Fast Actions */}
         <div className={styles.topRow}>
           <div className={styles.badgeGroup}>
             <CategoryBadge category={query.category} color={categoryColor} />
@@ -115,17 +121,17 @@ export function QueryCard({
               aria-label={copied ? 'Tersalin' : 'Salin query SQL'}
               title="Salin SQL"
             >
-              {copied ? <Check size={16} /> : <Copy size={16} />}
+              {copied ? <Check size={14} /> : <Copy size={14} />}
             </button>
             <button
               type="button"
               className={`${styles.iconActionBtn} ${isFavorite ? styles.favoriteActive : ''}`}
               onClick={handleStar}
               aria-label={isFavorite ? 'Hapus dari favorit' : 'Tambah ke favorit'}
-              title={isFavorite ? 'Hapus dari favorit' : 'Simpan sebagai favorit'}
+              title={isFavorite ? 'Hapus dari favorit' : 'Simpan Bookmark'}
             >
               <Star
-                size={16}
+                size={14}
                 fill={isFavorite ? 'var(--warning)' : 'none'}
                 stroke={isFavorite ? 'var(--warning)' : 'currentColor'}
               />
@@ -133,46 +139,50 @@ export function QueryCard({
           </div>
         </div>
 
-        {/* Title & Description */}
-        <div className={styles.titleSection}>
-          <h3 className={styles.cardTitle}>{query.title}</h3>
-          {query.description && (
-            <p className={styles.cardDesc}>{query.description}</p>
-          )}
-        </div>
+        {/* Title (Crisp White in Dark Mode) */}
+        <h2 className={styles.cardTitle}>{query.title}</h2>
 
-        {/* Sleek 2-3 line Code Pill */}
+        {/* Sleek Code Micro-Snippet (1 highlight line + dialect tag) */}
         {snippet && (
           <div className={styles.codeSnippetBox} aria-hidden="true">
             <code
               className={styles.codeSnippet}
               dangerouslySetInnerHTML={{ __html: snippet }}
             />
+            <span className={styles.sqlEngineTag}>{sqlModeLabel}</span>
           </div>
         )}
 
-        {/* Touchpoint Table Badges */}
+        {/* Referenced Tables (Subtle Chips) */}
         {tableNames.length > 0 && (
           <div className={styles.tableBadgesRow}>
-            <span className={styles.tablePrefix}>TABEL:</span>
-            {tableNames.map((tbl) => (
-              <span key={tbl} className={styles.tableBadge}>
-                {tbl}
-              </span>
-            ))}
+            <span className={styles.tablePrefix}>Tabel:</span>
+            <div className={styles.tableChipsList}>
+              {visibleTables.map((tbl) => (
+                <span key={tbl} className={styles.tableBadge} title={tbl}>
+                  {tbl}
+                </span>
+              ))}
+              {extraTableCount > 0 && (
+                <span
+                  className={styles.tableBadgeMore}
+                  title={tableNames.slice(2).join(', ')}
+                >
+                  +{extraTableCount} lagi
+                </span>
+              )}
+            </div>
           </div>
         )}
       </div>
 
-      {/* Footer Metadata */}
+      {/* Card Footer Info */}
       <div className={styles.cardFooter}>
-        <div className={styles.footerLeft}>
-          <span>{formatRelativeTime(query.updated_at)}</span>
-          <span className={styles.dot}>•</span>
-          <span>{copyCount}x disalin</span>
-        </div>
+        <span className={styles.footerLeft}>
+          {formatRelativeTime(query.updated_at)} • {copyCount}× disalin
+        </span>
         <span className={styles.openDetailLink}>
-          Buka Detail <ArrowRight size={13} />
+          Buka Detail <ArrowRight size={14} />
         </span>
       </div>
     </article>
