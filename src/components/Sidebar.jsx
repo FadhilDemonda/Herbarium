@@ -1,4 +1,4 @@
-import { Folder, Database, SlidersHorizontal, RefreshCw, Building2 } from 'lucide-react';
+import { Folder, SlidersHorizontal, RefreshCw, Building2, ChevronDown } from 'lucide-react';
 import styles from './Sidebar.module.css';
 
 export function Sidebar({
@@ -17,110 +17,82 @@ export function Sidebar({
 }) {
   return (
     <aside className={styles.sidebarWrapper} aria-label="Navigasi Samping">
-      {/* Box 1: Kategori Koleksi */}
       <div className={styles.sidebarCard}>
-        <div className={styles.cardHeader}>
-          <span className={styles.headerLabel}>Kategori Koleksi</span>
-          <span className={styles.totalBadge}>{totalCount} Total</span>
+        <div className={styles.filterGroup}>
+          <label className={styles.filterLabel} htmlFor="sidebar-category">
+            <Folder size={15} aria-hidden="true" />
+            <span>Kategori Koleksi</span>
+          </label>
+          <div className={styles.selectWrapper}>
+            <select
+              id="sidebar-category"
+              className={`${styles.filterSelect} ${selectedCategory ? styles.filterSelectActive : ''}`}
+              value={selectedCategory || ''}
+              onChange={(event) => onSelectCategory(event.target.value)}
+            >
+              <option value="">Semua Kategori ({totalCount})</option>
+              {categories.map((cat) => (
+                <option key={cat.name} value={cat.name}>
+                  {cat.name} ({cat.count})
+                </option>
+              ))}
+            </select>
+            <ChevronDown size={15} className={styles.selectChevron} aria-hidden="true" />
+          </div>
         </div>
 
-        <nav className={styles.categoryNav}>
-          <button
-            type="button"
-            className={`${styles.categoryBtn} ${!selectedCategory ? styles.categoryBtnActive : ''}`}
-            onClick={() => onSelectCategory('')}
-            aria-current={!selectedCategory ? 'page' : undefined}
-          >
-            <div className={styles.categoryInfo}>
-              <Folder size={16} className={styles.categoryIcon} />
-              <span className={styles.categoryTitle}>Semua Kategori</span>
-            </div>
-            <span className={styles.countBadge}>{totalCount}</span>
-          </button>
-
-          {categories.map((cat) => {
-            const isActive = selectedCategory === cat.name;
-            return (
-              <button
-                key={cat.name}
-                type="button"
-                className={`${styles.categoryBtn} ${isActive ? styles.categoryBtnActive : ''}`}
-                onClick={() => onSelectCategory(cat.name)}
-                aria-current={isActive ? 'page' : undefined}
-                title={cat.name}
+        {onSelectInstallation && (
+          <div className={styles.filterGroup}>
+            <label className={styles.filterLabel} htmlFor="sidebar-installation">
+              <Building2 size={15} aria-hidden="true" />
+              <span>Instalasi / Unit Layanan</span>
+            </label>
+            <div className={styles.selectWrapper}>
+              <select
+                id="sidebar-installation"
+                className={`${styles.filterSelect} ${selectedInstallation !== 'ALL' ? styles.filterSelectActive : ''}`}
+                value={selectedInstallation}
+                onChange={(event) => onSelectInstallation(event.target.value)}
               >
-                <div className={styles.categoryInfo}>
-                  <Database size={15} className={styles.categoryIcon} />
-                  <span className={styles.categoryTitle}>{cat.name}</span>
-                </div>
-                <span className={styles.countBadge}>{cat.count}</span>
-              </button>
-            );
-          })}
-        </nav>
+                <option value="ALL">Semua Instalasi ({totalCount})</option>
+                {installationCounts.map((inst) => (
+                  <option key={inst.name} value={inst.name}>
+                    {inst.name} ({inst.count})
+                  </option>
+                ))}
+              </select>
+              <ChevronDown size={15} className={styles.selectChevron} aria-hidden="true" />
+            </div>
+          </div>
+        )}
+
+        {onSelectType && (
+          <div className={styles.filterGroup}>
+            <label className={styles.filterLabel} htmlFor="sidebar-type">
+              <SlidersHorizontal size={15} aria-hidden="true" />
+              <span>Target Penggunaan</span>
+            </label>
+            <div className={styles.selectWrapper}>
+              <select
+                id="sidebar-type"
+                className={`${styles.filterSelect} ${selectedType !== 'ALL' ? styles.filterSelectActive : ''}`}
+                value={selectedType}
+                onChange={(event) => onSelectType(event.target.value)}
+              >
+                <option value="ALL">Semua Target ({totalCount})</option>
+                {typeCounts.map((type) => (
+                  <option key={type.name} value={type.name}>
+                    {type.name} ({type.count})
+                  </option>
+                ))}
+              </select>
+              <ChevronDown size={15} className={styles.selectChevron} aria-hidden="true" />
+            </div>
+          </div>
+        )}
       </div>
 
-      {/* Box 2: Instalasi / Unit Layanan */}
-      {installationCounts.length > 0 && onSelectInstallation && (
-        <div className={styles.sidebarCard}>
-          <div className={styles.cardHeader}>
-            <span className={styles.headerLabel}>Instalasi / Unit Layanan</span>
-            <Building2 size={14} className={styles.headerIcon} />
-          </div>
-
-          <div className={styles.typeChips}>
-            <button
-              type="button"
-              className={`${styles.typeChip} ${selectedInstallation === 'ALL' ? styles.typeChipActive : ''}`}
-              onClick={() => onSelectInstallation('ALL')}
-            >
-              Semua ({totalCount})
-            </button>
-            {installationCounts.map((inst) => (
-              <button
-                key={inst.name}
-                type="button"
-                className={`${styles.typeChip} ${selectedInstallation === inst.name ? styles.typeChipActive : ''}`}
-                onClick={() => onSelectInstallation(inst.name)}
-              >
-                {inst.name} ({inst.count})
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* Box 3: Target Penggunaan (Type Scope Filter) */}
-      {typeCounts.length > 0 && onSelectType && (
-        <div className={styles.sidebarCard}>
-          <div className={styles.cardHeader}>
-            <span className={styles.headerLabel}>Target Penggunaan</span>
-            <SlidersHorizontal size={14} className={styles.headerIcon} />
-          </div>
-
-          <div className={styles.typeChips}>
-            <button
-              type="button"
-              className={`${styles.typeChip} ${selectedType === 'ALL' ? styles.typeChipActive : ''}`}
-              onClick={() => onSelectType('ALL')}
-            >
-              Semua ({totalCount})
-            </button>
-            {typeCounts.map((t) => (
-              <button
-                key={t.name}
-                type="button"
-                className={`${styles.typeChip} ${selectedType === t.name ? styles.typeChipActive : ''}`}
-                onClick={() => onSelectType(t.name)}
-              >
-                {t.name} ({t.count})
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* Box 3: Quick Connection Status */}
+      {/* Quick Connection Status */}
       <div className={styles.connectionCard}>
         <div className={styles.connectionLeft}>
           <span className={styles.pulseDotWrapper}>

@@ -26,6 +26,9 @@
 }
 
 .sidebarCard {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
   background-color: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
@@ -33,16 +36,17 @@
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.04);
 }
 
-.cardHeader {
+.filterGroup {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 2px 4px 10px;
-  margin-bottom: 6px;
-  border-bottom: 1px solid var(--border);
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
 }
 
-.headerLabel {
+.filterLabel {
+  display: flex;
+  align-items: center;
+  gap: 8px;
   font-size: 0.6875rem;
   font-weight: 700;
   text-transform: uppercase;
@@ -50,119 +54,60 @@
   color: var(--text-muted);
 }
 
-.totalBadge {
-  font-size: 0.6875rem;
-  font-family: var(--font-mono);
-  color: var(--text-muted);
+.filterLabel svg {
+  flex-shrink: 0;
 }
 
-.headerIcon {
-  color: var(--text-muted);
-}
-
-.categoryNav {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.categoryBtn {
-  width: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 8px 12px;
-  border-radius: var(--radius-md);
-  background: transparent;
-  border: 1px solid transparent;
-  color: var(--text-muted);
-  font-size: 0.8125rem;
-  font-weight: 500;
-  cursor: pointer;
-  text-align: left;
-  transition: all var(--transition-fast);
-}
-
-.categoryBtn:hover {
-  background-color: var(--surface-2);
-  color: var(--text);
-  border-color: var(--border);
-}
-
-.categoryBtnActive {
-  background-color: var(--primary-soft);
-  color: var(--primary);
-  border-color: var(--border);
-  font-weight: 600;
-}
-
-.categoryInfo {
-  display: flex;
-  align-items: center;
-  gap: 10px;
+.selectWrapper {
+  position: relative;
   min-width: 0;
 }
 
-.categoryIcon {
-  color: inherit;
-  flex-shrink: 0;
-}
-
-.categoryTitle {
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.countBadge {
-  padding: 2px 7px;
-  border-radius: 4px;
-  background-color: var(--surface-2);
-  color: var(--text-muted);
-  font-size: 0.6875rem;
-  font-family: var(--font-mono);
-  border: 1px solid var(--border);
-  flex-shrink: 0;
-  transition: all var(--transition-fast);
-}
-
-.categoryBtnActive .countBadge {
-  background-color: var(--surface);
-  color: var(--primary);
-  border-color: var(--border);
-  font-weight: 600;
-}
-
-/* Target Scope Chips */
-.typeChips {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-  padding-top: 4px;
-}
-
-.typeChip {
-  padding: 4px 10px;
-  border-radius: var(--radius-sm);
+.filterSelect {
+  appearance: none;
+  width: 100%;
+  min-height: 40px;
+  padding: 10px 34px 10px 12px;
+  border-radius: var(--radius-md);
   background-color: var(--surface-2);
   border: 1px solid var(--border);
-  color: var(--text-muted);
-  font-size: 0.6875rem;
+  color: var(--text);
+  font-family: inherit;
+  font-size: 0.8125rem;
   font-weight: 500;
   cursor: pointer;
-  transition: all var(--transition-fast);
+  text-overflow: ellipsis;
+  transition: border-color var(--transition-fast), background-color var(--transition-fast);
 }
 
-.typeChip:hover {
-  color: var(--text);
+.filterSelect:hover {
   border-color: var(--ring);
 }
 
-.typeChipActive {
+.filterSelect:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+}
+
+.filterSelectActive {
   background-color: var(--primary-soft);
   color: var(--primary);
   border-color: var(--primary);
   font-weight: 600;
+}
+
+.selectChevron {
+  position: absolute;
+  top: 50%;
+  right: 12px;
+  transform: translateY(-50%);
+  color: var(--text-muted);
+  pointer-events: none;
+}
+
+.filterSelect option {
+  background-color: var(--surface);
+  color: var(--text);
 }
 
 /* Connection Status Card */

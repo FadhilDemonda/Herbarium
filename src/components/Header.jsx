@@ -9,9 +9,6 @@ export function Header({
   onOpenCreateModal,
   activePage = 'queries',
   onNavigate,
-  selectedType = 'ALL',
-  onSelectType,
-  typeOptions = [],
 }) {
   const { isLoggedIn, user, logout, openLoginModal } = useAuth();
   const { theme, toggleTheme } = useTheme();
@@ -113,24 +110,8 @@ export function Header({
           </button>
         </div>
 
-        {/* Right Section: Quick Scope Chips, Theme Toggle, Add Query, User Profile */}
+        {/* Right Section: Theme Toggle, Add Query, User Profile */}
         <div className={styles.rightSection}>
-          {/* Quick Scope Chips (Desktop only on queries page) */}
-          {activePage === 'queries' && typeOptions.length > 0 && onSelectType && (
-            <div className={styles.scopeChips}>
-              {typeOptions.slice(0, 4).map((opt) => (
-                <button
-                  key={opt.value}
-                  type="button"
-                  className={`${styles.scopeChip} ${selectedType === opt.value ? styles.scopeChipActive : ''}`}
-                  onClick={() => onSelectType(opt.value)}
-                >
-                  {opt.label}
-                </button>
-              ))}
-            </div>
-          )}
-
           {/* Theme Toggle */}
           <button
             type="button"

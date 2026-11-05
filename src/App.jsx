@@ -219,15 +219,6 @@ export function App() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
 
-  // Dynamic Type Filter Options for Header & Sidebar
-  const typeFilterOptions = useMemo(() => {
-    const opts = [{ label: 'Semua', value: 'ALL' }];
-    masterTypes.forEach((t) => {
-      opts.push({ label: t.name, value: t.name });
-    });
-    return opts;
-  }, [masterTypes]);
-
   // Dynamic Type Counts for Sidebar Target Penggunaan
   const typeCounts = useMemo(() => {
     const map = {};
@@ -478,9 +469,6 @@ export function App() {
         onOpenCreateModal={handleCreateNewQuery}
         activePage={activePage}
         onNavigate={setActivePage}
-        selectedType={selectedType}
-        onSelectType={handleTypeSelect}
-        typeOptions={typeFilterOptions}
       />
 
       {/* Main Workspace Layout */}

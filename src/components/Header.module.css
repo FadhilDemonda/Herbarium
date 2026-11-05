@@ -220,45 +220,6 @@
   flex-shrink: 0;
 }
 
-.scopeChips {
-  display: flex;
-  align-items: center;
-  gap: 2px;
-  padding: 3px;
-  border-radius: var(--radius-md);
-  background-color: var(--surface-2);
-  border: 1px solid var(--border);
-  font-size: 0.75rem;
-}
-
-@media (max-width: 1200px) {
-  .scopeChips {
-    display: none;
-  }
-}
-
-.scopeChip {
-  padding: 3px 8px;
-  border-radius: var(--radius-sm);
-  background: transparent;
-  border: none;
-  color: var(--text-muted);
-  font-size: 0.75rem;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all var(--transition-fast);
-}
-
-.scopeChip:hover {
-  color: var(--text);
-}
-
-.scopeChipActive {
-  background-color: var(--primary-soft);
-  color: var(--primary);
-  font-weight: 600;
-}
-
 .iconBtn {
   width: 36px;
   height: 36px;
