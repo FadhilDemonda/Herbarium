@@ -1,17 +1,88 @@
 import { useState, useMemo } from 'react';
-import { Copy, Check, Star, ArrowRight } from 'lucide-react';
-import { CategoryBadge, TypeBadge, InstallationBadge } from './Badges';
+import {
+  Copy,
+  Check,
+  Star,
+  ArrowRight,
+  Database,
+  Activity,
+  Scissors,
+  Pill,
+  Flame,
+  FlaskConical,
+  Stethoscope,
+} from 'lucide-react';
 import { copyToClipboard } from '../lib/clipboard';
-import { highlightSql, formatRelativeTime, extractTableNames } from '../lib/syntax';
+import { formatRelativeTime, extractTableNames } from '../lib/syntax';
 import { useToast } from './Toast';
 import styles from './QueryCard.module.css';
+
+/**
+ * Resolve installation icon, label, and visual theme
+ */
+function getInstallationInfo(installation) {
+  const norm = (installation || '').toLowerCase().trim();
+
+  if (norm.includes('ranap') || norm.includes('rawat inap') || norm.includes('inap')) {
+    return {
+      label: norm.startsWith('instalasi') ? installation : `Instalasi ${installation || 'Rawat Inap'}`,
+      icon: Activity,
+      theme: 'forest', // green: #e8f2eb / #275338 / #bdeecb
+    };
+  }
+
+  if (norm.includes('operasi') || norm.includes('ok') || norm.includes('bedah') || norm.includes('pisau')) {
+    return {
+      label: norm.includes('kamar operasi') ? 'Kamar Operasi (OK)' : installation,
+      icon: Scissors,
+      theme: 'terracotta', // terracotta: #fdf2e9 / #904b2e / #fddbc6
+    };
+  }
+
+  if (norm.includes('farmasi') || norm.includes('apotek') || norm.includes('obat')) {
+    return {
+      label: norm.includes('apotek') ? installation : 'Farmasi & Apotek',
+      icon: Pill,
+      theme: 'forest', // green: #e8f2eb / #275338 / #bdeecb
+    };
+  }
+
+  if (norm.includes('igd') || norm.includes('gawat darurat') || norm.includes('triase')) {
+    return {
+      label: norm.includes('igd') ? 'Instalasi Gawat Darurat (IGD)' : installation,
+      icon: Flame,
+      theme: 'terracotta',
+    };
+  }
+
+  if (norm.includes('radiologi') || norm.includes('lab') || norm.includes('penunjang')) {
+    return {
+      label: installation || 'Radiologi & Lab',
+      icon: FlaskConical,
+      theme: 'slate',
+    };
+  }
+
+  if (norm.includes('rajal') || norm.includes('rawat jalan') || norm.includes('poli')) {
+    return {
+      label: norm.startsWith('instalasi') ? installation : `Instalasi ${installation || 'Rawat Jalan'}`,
+      icon: Stethoscope,
+      theme: 'teal',
+    };
+  }
+
+  return {
+    label: installation || 'Umum / Semua Unit',
+    icon: Activity,
+    theme: 'forest',
+  };
+}
 
 export function QueryCard({
   query,
   onSelect,
   isActive = false,
   categoryColor,
-  typeColor,
   installationColor,
   isFavorite = false,
   onToggleFavorite,
@@ -21,10 +92,11 @@ export function QueryCard({
 
   const handleCopy = async (e) => {
     e.stopPropagation(); // Do not trigger card open
-    const success = await copyToClipboard(query.sql_query);
+    const targetText = query.sql_query || query.title || '';
+    const success = await copyToClipboard(targetText);
     if (success) {
       setCopied(true);
-      showToast('✓ SQL Berhasil Disalin', `${query.title} disalin ke clipboard.`);
+      showToast('✓ Berhasil Disalin', `${query.title} disalin ke clipboard.`);
       setTimeout(() => setCopied(false), 1500);
     } else {
       showToast('Gagal menyalin teks', 'error');
@@ -38,46 +110,48 @@ export function QueryCard({
     }
   };
 
-  // Sleek single-line micro-snippet preview
-  const snippet = useMemo(() => {
-    if (!query.sql_query) return '';
-    const lines = query.sql_query
-      .split('\n')
-      .map((l) => l.trim())
-      .filter((l) => l.length > 0 && !l.startsWith('--'));
-    const sourceText = lines.length > 0 ? lines.join(' ') : query.sql_query.trim();
-    const compact = sourceText.replace(/\s+/g, ' ').slice(0, 110);
-    return highlightSql(compact);
-  }, [query.sql_query]);
+  // Top Installation badge
+  const installationInfo = useMemo(() => {
+    const info = getInstallationInfo(query.installation);
+    if (installationColor) {
+      if (['forest', 'terracotta', 'teal', 'amber', 'berry', 'slate', 'neutral'].includes(installationColor)) {
+        info.theme = installationColor;
+      }
+    }
+    return info;
+  }, [query.installation, installationColor]);
 
-  // Dialect / query mode badge inside snippet box
-  const sqlModeLabel = useMemo(() => {
-    const raw = (query.sql_query || '').trim();
-    if (/^\s*WITH\b/i.test(raw)) return 'CTE View';
-    if (/\{\{.*?\}\}/.test(raw)) return 'Superset Jinja';
-    if (query.type === 'Dashboard') return 'Superset ETL';
-    return 'PostgreSQL';
-  }, [query.sql_query, query.type]);
+  const InstallationIcon = installationInfo.icon;
 
-  // Extract table names for touchpoint badges
+  // Extract table names
   const tableNames = useMemo(() => {
     return extractTableNames(query.sql_query);
   }, [query.sql_query]);
 
-  const visibleTables = useMemo(() => tableNames.slice(0, 2), [tableNames]);
-  const extraTableCount = Math.max(0, tableNames.length - 2);
+  const visibleTables = useMemo(() => tableNames.slice(0, 6), [tableNames]);
+  const extraTableCount = Math.max(0, tableNames.length - 6);
 
-  // Pseudorandom realistic copy count derived from ID for consistency
-  const copyCount = useMemo(() => {
-    if (query.copy_count !== undefined) return query.copy_count;
-    let hash = 0;
-    const str = query.id || query.title || 'herb';
-    for (let i = 0; i < str.length; i++) {
-      hash = (hash << 5) - hash + str.charCodeAt(i);
-      hash |= 0;
+  // Category / Type pill at footer
+  const categoryBadgeInfo = useMemo(() => {
+    const rawCat = (query.category || query.type || 'Query').trim();
+    let label = rawCat;
+    if (/permintaan dataset/i.test(rawCat)) {
+      label = 'Dataset Request';
+    } else if (/query superset/i.test(rawCat)) {
+      label = 'Query Superset';
     }
-    return Math.abs(hash % 280) + 24;
-  }, [query.id, query.title, query.copy_count]);
+
+    let theme = 'forest';
+    if (/dataset|permintaan/i.test(rawCat)) {
+      theme = 'terracotta';
+    } else if (/superset/i.test(rawCat)) {
+      theme = 'forest';
+    } else if (categoryColor) {
+      theme = categoryColor;
+    }
+
+    return { label, theme };
+  }, [query.category, query.type, categoryColor]);
 
   return (
     <article
@@ -102,16 +176,13 @@ export function QueryCard({
         />
       )}
 
-      <div className={styles.cardContent}>
-        {/* Header Tags & Fast Actions */}
+      <div className={styles.topSection}>
+        {/* Top Row: Unit Badge + Action Icons */}
         <div className={styles.topRow}>
-          <div className={styles.badgeGroup}>
-            <CategoryBadge category={query.category} color={categoryColor} />
-            {query.installation && (
-              <InstallationBadge installation={query.installation} color={installationColor} />
-            )}
-            <TypeBadge type={query.type} color={typeColor} />
-          </div>
+          <span className={`${styles.unitBadge} ${styles['unit_' + installationInfo.theme]}`}>
+            <InstallationIcon size={12} strokeWidth={2.4} className={styles.unitIcon} />
+            <span>{installationInfo.label}</span>
+          </span>
 
           <div className={styles.actionsGroup}>
             <button
@@ -119,71 +190,91 @@ export function QueryCard({
               className={`${styles.iconActionBtn} ${copied ? styles.copySuccess : ''}`}
               onClick={handleCopy}
               aria-label={copied ? 'Tersalin' : 'Salin query SQL'}
-              title="Salin SQL"
+              title="Salin Identifier"
             >
-              {copied ? <Check size={14} /> : <Copy size={14} />}
+              {copied ? <Check size={14} strokeWidth={2.4} /> : <Copy size={14} />}
             </button>
             <button
               type="button"
               className={`${styles.iconActionBtn} ${isFavorite ? styles.favoriteActive : ''}`}
               onClick={handleStar}
-              aria-label={isFavorite ? 'Hapus dari favorit' : 'Tambah ke favorit'}
-              title={isFavorite ? 'Hapus dari favorit' : 'Simpan Bookmark'}
+              aria-label={isFavorite ? 'Hapus dari favorit' : 'Tambah ke bookmark'}
+              title="Simpan Bookmark"
             >
               <Star
                 size={14}
-                fill={isFavorite ? 'var(--warning)' : 'none'}
-                stroke={isFavorite ? 'var(--warning)' : 'currentColor'}
+                fill={isFavorite ? '#eab308' : 'none'}
+                stroke={isFavorite ? '#eab308' : 'currentColor'}
               />
             </button>
           </div>
         </div>
 
-        {/* Title (Crisp White in Dark Mode) */}
-        <h2 className={styles.cardTitle}>{query.title}</h2>
+        {/* Query Title (Clear & Bold, Uppercase, No Description) */}
+        <div>
+          <h2 className={styles.cardTitle}>{query.title}</h2>
+        </div>
 
-        {/* Sleek Code Micro-Snippet (1 highlight line + dialect tag) */}
-        {snippet && (
-          <div className={styles.codeSnippetBox} aria-hidden="true">
-            <code
-              className={styles.codeSnippet}
-              dangerouslySetInnerHTML={{ __html: snippet }}
-            />
-            <span className={styles.sqlEngineTag}>{sqlModeLabel}</span>
+        {/* Many Tables Listed Cleanly */}
+        <div className={styles.tablesSection}>
+          <div className={styles.tablesHeader}>
+            <span className={styles.tablesLabel}>
+              <Database size={13} strokeWidth={2.2} className={styles.databaseIcon} />
+              <span>Tabel Terkait</span>
+            </span>
+            <span className={styles.tablesCount}>
+              {tableNames.length > 0 ? `${tableNames.length} Tabel` : '0 Tabel'}
+            </span>
           </div>
-        )}
 
-        {/* Referenced Tables (Subtle Chips) */}
-        {tableNames.length > 0 && (
-          <div className={styles.tableBadgesRow}>
-            <span className={styles.tablePrefix}>Tabel:</span>
-            <div className={styles.tableChipsList}>
-              {visibleTables.map((tbl) => (
-                <span key={tbl} className={styles.tableBadge} title={tbl}>
-                  {tbl}
-                </span>
-              ))}
-              {extraTableCount > 0 && (
-                <span
-                  className={styles.tableBadgeMore}
-                  title={tableNames.slice(2).join(', ')}
-                >
-                  +{extraTableCount} lagi
-                </span>
-              )}
-            </div>
+          <div className={styles.tablesList}>
+            {tableNames.length > 0 ? (
+              <>
+                {visibleTables.map((tbl) => (
+                  <span key={tbl} className={styles.tableChip} title={tbl}>
+                    {tbl}
+                  </span>
+                ))}
+                {extraTableCount > 0 && (
+                  <span
+                    className={styles.tableChipMore}
+                    title={tableNames.slice(6).join(', ')}
+                  >
+                    +{extraTableCount} lagi
+                  </span>
+                )}
+              </>
+            ) : (
+              <span className={styles.tableChipEmpty}>-</span>
+            )}
           </div>
-        )}
+        </div>
       </div>
 
-      {/* Card Footer Info */}
+      {/* Card Footer */}
       <div className={styles.cardFooter}>
-        <span className={styles.footerLeft}>
-          {formatRelativeTime(query.updated_at)} • {copyCount}× disalin
-        </span>
-        <span className={styles.openDetailLink}>
-          Buka Detail <ArrowRight size={14} />
-        </span>
+        <div className={styles.footerLeft}>
+          <span
+            className={`${styles.categoryBadge} ${styles['cat_' + categoryBadgeInfo.theme]}`}
+          >
+            {categoryBadgeInfo.label}
+          </span>
+          <span className={styles.timeAgoText}>
+            {formatRelativeTime(query.updated_at)}
+          </span>
+        </div>
+
+        <button
+          type="button"
+          className={styles.openDetailBtn}
+          onClick={(e) => {
+            e.stopPropagation();
+            onSelect(query);
+          }}
+        >
+          <span>Buka Detail</span>
+          <ArrowRight size={12} strokeWidth={2.4} className={styles.arrowIcon} />
+        </button>
       </div>
     </article>
   );

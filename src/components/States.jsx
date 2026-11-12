@@ -4,12 +4,29 @@ import styles from './States.module.css';
 export function SkeletonCard() {
   return (
     <div className={styles.skeletonCard} aria-hidden="true">
-      <div className={`${styles.skeletonBlock} ${styles.skeletonTitle}`} />
-      <div className={styles.skeletonBadges}>
-        <div className={`${styles.skeletonBlock} ${styles.skeletonBadge}`} />
-        <div className={`${styles.skeletonBlock} ${styles.skeletonBadge}`} />
+      <div className={styles.skeletonTopRow}>
+        <div className={`${styles.skeletonBlock} ${styles.skeletonUnitBadge}`} />
+        <div className={styles.skeletonActions}>
+          <div className={`${styles.skeletonBlock} ${styles.skeletonActionBtn}`} />
+          <div className={`${styles.skeletonBlock} ${styles.skeletonActionBtn}`} />
+        </div>
       </div>
-      <div className={`${styles.skeletonBlock} ${styles.skeletonSnippet}`} />
+      <div className={`${styles.skeletonBlock} ${styles.skeletonTitle}`} />
+      <div className={styles.skeletonTables}>
+        <div className={styles.skeletonTableHeader}>
+          <div className={`${styles.skeletonBlock} ${styles.skeletonTableLabel}`} />
+          <div className={`${styles.skeletonBlock} ${styles.skeletonTableCount}`} />
+        </div>
+        <div className={styles.skeletonChips}>
+          <div className={`${styles.skeletonBlock} ${styles.skeletonChip}`} />
+          <div className={`${styles.skeletonBlock} ${styles.skeletonChip}`} />
+          <div className={`${styles.skeletonBlock} ${styles.skeletonChip}`} />
+        </div>
+      </div>
+      <div className={styles.skeletonFooter}>
+        <div className={`${styles.skeletonBlock} ${styles.skeletonCatBadge}`} />
+        <div className={`${styles.skeletonBlock} ${styles.skeletonBtn}`} />
+      </div>
     </div>
   );
 }

@@ -9,7 +9,7 @@ Pilih JavaScript **atau** TypeScript di awal dan jangan dicampur.
 
 ## Aturan Umum
 - Kerjakan per milestone (M1 → M4) sesuai PRD. Jangan lompat dan jangan menambah fitur di luar PRD.
-- Fitur yang **sengaja tidak ada**: deskripsi, tag, tautan Superset, role, halaman daftar akun. Jangan ditambahkan.
+- Fitur yang **sengaja tidak ada**: tag, tautan Superset, role, halaman daftar akun. Deskripsi hanya tersedia pada Master Data, bukan pada query. Jangan menambahkan field lain pada query.
 - Sebelum menulis kode besar, tulis rencana singkat (file yang dibuat/diubah).
 - Setelah tiap milestone: jalankan lint dan build, lalu laporkan hasilnya.
 - Bahasa UI: Indonesia. Kode, nama variabel, dan komentar: Inggris.
@@ -17,10 +17,11 @@ Pilih JavaScript **atau** TypeScript di awal dan jangan dicampur.
 - Jangan mengarang data query. Data hanya berasal dari file sumber atau input pengguna.
 
 ## Data
-- Sheet `queries`: `id`, `title`, `category`, `type`, `sql_query`, `created_at`, `updated_at`, `updated_by`.
+- Sheet `queries`: `id`, `title`, `category`, `type`, `installation`, `sql_query`, `created_at`, `updated_at`, `updated_by`.
 - Sheet `users`: `username`, `password`, `active`.
-- `type` hanya boleh `Query` atau `Dashboard`.
-- Form input hanya 4 isian: Judul, Kategori, Jenis, Query SQL.
+- Sheet master: `categories`, `types`, dan `installations`, masing-masing dengan `id`, `name`, `description`, `color`, `sort_order`, `created_at`, `updated_at`, `updated_by`.
+- Nilai `type` berasal dari master `types`; seed awalnya `Query` dan `Dashboard`.
+- Form query berisi 5 isian: Judul, Kategori, Jenis, Instalasi, dan Query SQL.
 - Baca header sheet berdasarkan nama kolom, bukan indeks tetap.
 
 ## Keamanan (wajib)
@@ -33,7 +34,7 @@ Pilih JavaScript **atau** TypeScript di awal dan jangan dicampur.
 - Jangan commit `.env`, data produksi di `data/`, password, atau kredensial apa pun. Jangan menulis password asli di contoh, seed, test, atau log.
 - Render SQL sebagai teks. Dilarang `dangerouslySetInnerHTML` dengan input mentah.
 - Kolom `sql_query` ditulis ke Sheet sebagai teks biasa (format `@`) agar isi berawalan `=`, `+`, `-`, `@` tidak dibaca sebagai formula.
-- Validasi input di klien **dan** GAS: judul wajib (maks 150 karakter), kategori wajib, jenis hanya `Query`/`Dashboard`, SQL wajib.
+- Validasi input di klien **dan** GAS: judul wajib (maks 150 karakter), kategori dan instalasi wajib, jenis wajib dan terdaftar pada master, SQL wajib.
 - Jangan memasukkan atau meminta data pasien/PHI di contoh, seed, atau test.
 
 ## Frontend
@@ -54,8 +55,8 @@ Pilih JavaScript **atau** TypeScript di awal dan jangan dicampur.
 - Semua respons lewat helper `json_(obj)` dengan bentuk `{ok, data|error}`.
 - Operasi tulis dibungkus `LockService.getScriptLock()`.
 - `id`, `created_at`, `updated_at`, `updated_by` dibuat server. Abaikan nilai dari klien.
-- Hanya akses dua sheet: `queries` dan `users`.
-- Sediakan `importBatch()` untuk impor `data/queries.json`. Fungsi ini dijalankan manual dari editor Apps Script, **bukan** endpoint web.
+- Backend hanya mengakses lima sheet miliknya: `queries`, `users`, `categories`, `types`, dan `installations`.
+- `importBatch()` saat ini menyiapkan header, master awal, dan mereset cache. Impor isi `data/queries.json` dilakukan melalui proses admin terpisah, bukan endpoint web.
 - Tulis `apps-script/README.md`: cara membuat Sheet dan kolom, menambah akun di sheet `users`, menempel kode, deploy sebagai Web App (*Execute as: Me*, *Anyone*), dan cara re-deploy saat kode berubah.
 - Peringatkan di README: sheet **tidak boleh dibagikan** ke selain admin, karena password tersimpan sebagai teks biasa.
 

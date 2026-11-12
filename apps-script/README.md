@@ -13,19 +13,20 @@ Dokumen ini menjelaskan langkah-langkah lengkap untuk menyiapkan Google Sheets s
 ## 1. Membuat Google Spreadsheet
 
 1. Buka [Google Sheets](https://sheets.new) dan buat Spreadsheet baru dengan judul **Herbarium Database**.
-2. Spreadsheet ini menggunakan 4 tab sheet:
+2. Spreadsheet ini menggunakan 5 tab sheet. Dua sheet inti dibuat manual; tiga master sheet dibuat otomatis saat `importBatch()` dijalankan.
 
 ### A. Sheet `queries`
 Buat header di baris ke-1 (Row 1):
-| A | B | C | D | E | F | G | H |
-|---|---|---|---|---|---|---|---|
-| `id` | `title` | `category` | `type` | `sql_query` | `created_at` | `updated_at` | `updated_by` |
+| A | B | C | D | E | F | G | H | I |
+|---|---|---|---|---|---|---|---|---|
+| `id` | `title` | `category` | `type` | `installation` | `sql_query` | `created_at` | `updated_at` | `updated_by` |
 
 *Keterangan kolom:*
 - `id`: ID unik query (`qry_...`)
 - `title`: Judul query (maks 150 karakter)
 - `category`: Kategori (mis. `Query Permintaan Dataset`, `Query Superset`, dll)
 - `type`: Jenis query (mis. `Query`, `Dashboard`, dll)
+- `installation`: Unit layanan terkait (mis. `Rawat Jalan`, `IGD`, atau `Umum / Semua Unit`)
 - `sql_query`: Teks query SQL
 - `created_at`: Waktu pembuatan (ISO 8601)
 - `updated_at`: Waktu terakhir diedit (ISO 8601)
@@ -39,18 +40,18 @@ Buat header di baris ke-1 (Row 1):
 
 Tambahkan baris akun editor pertama (contoh):
 - `username`: `annisa` (gunakan huruf kecil)
-- `password`: `rahasia123` (ganti dengan kata sandi yang aman)
+- `password`: buat password kuat dan unik yang tidak dipakai pada layanan lain
 - `active`: `TRUE`
 
 *Catatan:*
 - Akun dengan `active` selain `TRUE` (misal `FALSE`) akan ditolak saat login.
 - Penambahan atau penghapusan akun dilakukan langsung di sheet `users` ini oleh admin.
 
-### C. Sheet `categories` & `types` (Otomatis Diinisialisasi)
-Kedua sheet master ini **akan dibuat dan diisi secara otomatis** oleh sistem saat fungsi dijalankan atau via Web API backend:
+### C. Sheet `categories`, `types`, dan `installations` (Otomatis Diinisialisasi)
+Ketiga sheet master ini **dibuat dan diisi nilai awal saat `importBatch()` dijalankan**:
 - Header: `id`, `name`, `description`, `color`, `sort_order`, `created_at`, `updated_at`, `updated_by`
 - Nilai `color`: pilihan preset warna (`terracotta`, `forest`, `teal`, `amber`, `berry`, `slate`, `neutral`).
-- Saat sebuah Kategori/Jenis diubah namanya di Master Data, seluruh query yang menggunakannya akan otomatis diperbarui (*cascade update*). Jika dihapus, query terkait otomatis dialihkan ke kategori `'Lainnya'` atau jenis `'Query'`.
+- Saat sebuah master diubah namanya di Master Data, seluruh query yang menggunakannya otomatis diperbarui (*cascade update*). Jika dihapus, query terkait dialihkan ke kategori `'Lainnya'`, jenis `'Query'`, atau instalasi `'Umum / Semua Unit'`.
 
 ---
 
@@ -58,14 +59,14 @@ Kedua sheet master ini **akan dibuat dan diisi secara otomatis** oleh sistem saa
 
 1. Di menu atas Spreadsheet, klik **Extensions (Ekstensi)** > **Apps Script**.
 2. Beri nama proyek: **Herbarium Backend**.
-3. Buka file `Code.gs`, hapus kode bawaan, dan tempelkan seluruh isi dari file [`apps-script/Code.gs`](file:///c:/Users/mfadh/OneDrive/Documents/1D/Herbarium/apps-script/Code.gs).
+3. Buka file `Code.gs`, hapus kode bawaan, dan tempelkan seluruh isi dari `apps-script/Code.gs` pada repositori ini.
 4. Klik ikon simpan (Save / Ctrl+S).
 
 ---
 
 ## 3. Impor Data Awal (`importBatch`)
 
-Seluruh 20 data query dari migrasi sudah langsung tertanam (*embedded*) di dalam file `Code.gs` pada fungsi `importBatch()`, sehingga Anda tidak perlu menyalin JSON secara terpisah:
+Fungsi `importBatch()` menyiapkan header sheet `queries`, membuat master awal, dan mereset cache. Fungsi ini tidak mengimpor isi `data/queries.json`; impor data awal harus dilakukan oleh admin dari sumber yang sudah ditinjau.
 
 1. Di toolbar bagian atas editor Apps Script (di sebelah tombol **Debug** dan **Run**), perhatikan dropdown yang memilih nama fungsi (defaultnya biasanya bertuliskan `doGet` atau `myFunction`).
 2. Klik dropdown tersebut dan pilih **`importBatch`**.
@@ -78,7 +79,7 @@ Seluruh 20 data query dari migrasi sudah langsung tertanam (*embedded*) di dalam
    - Klik **Allow** (Izinkan).
 5. Proses impor akan berjalan beberapa detik. Di bagian bawah (*Execution log*), akan muncul tulisan:
    `Import batch completed! Imported: 20 queries.`
-6. Buka kembali tab Google Sheets Anda; seluruh 20 baris query SQL beserta kategorinya sudah masuk secara otomatis ke tab sheet `queries`.
+6. Buka kembali Google Sheets dan pastikan kelima sheet tersedia. Setelah itu, impor query yang telah ditinjau ke sheet `queries` dengan tetap memakai header yang tercantum di atas.
 
 ---
 

@@ -1,21 +1,31 @@
 /* Skeleton */
 .skeletonCard {
-  background-color: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-md);
-  padding: var(--space-4);
+  background-color: #ffffff;
+  border: 1px solid #e4ded0;
+  border-radius: 16px;
+  padding: 20px;
   display: flex;
   flex-direction: column;
-  gap: var(--space-3);
+  gap: 16px;
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 1px 3px 0 rgba(40, 30, 20, 0.04);
+}
+
+:global([data-theme="dark"]) .skeletonCard {
+  background-color: var(--surface);
+  border-color: var(--border);
+}
+
+.skeletonBlock {
+  background-color: #f0ecdf;
+  border-radius: var(--radius-sm);
   position: relative;
   overflow: hidden;
 }
 
-.skeletonBlock {
+:global([data-theme="dark"]) .skeletonBlock {
   background-color: var(--surface-2);
-  border-radius: var(--radius-sm);
-  position: relative;
-  overflow: hidden;
 }
 
 .skeletonBlock::after {
@@ -52,25 +62,94 @@
   }
 }
 
+.skeletonTopRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.skeletonUnitBadge {
+  height: 22px;
+  width: 130px;
+  border-radius: 8px;
+}
+
+.skeletonActions {
+  display: flex;
+  gap: 6px;
+}
+
+.skeletonActionBtn {
+  height: 28px;
+  width: 28px;
+  border-radius: 8px;
+}
+
 .skeletonTitle {
   height: 20px;
-  width: 75%;
+  width: 80%;
 }
 
-.skeletonBadges {
+.skeletonTables {
   display: flex;
-  gap: var(--space-2);
+  flex-direction: column;
+  gap: 8px;
+  padding-top: 6px;
+  border-top: 1px solid #f0ecdf;
 }
 
-.skeletonBadge {
+:global([data-theme="dark"]) .skeletonTables {
+  border-top-color: var(--border);
+}
+
+.skeletonTableHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.skeletonTableLabel {
+  height: 14px;
+  width: 90px;
+}
+
+.skeletonTableCount {
+  height: 14px;
+  width: 45px;
+}
+
+.skeletonChips {
+  display: flex;
+  gap: 6px;
+}
+
+.skeletonChip {
+  height: 22px;
+  width: 100px;
+  border-radius: 6px;
+}
+
+.skeletonFooter {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-top: 1px solid #f0ecdf;
+  padding-top: 14px;
+  margin-top: 4px;
+}
+
+:global([data-theme="dark"]) .skeletonFooter {
+  border-top-color: var(--border);
+}
+
+.skeletonCatBadge {
   height: 18px;
-  width: 60px;
-  border-radius: var(--radius-full);
+  width: 80px;
 }
 
-.skeletonSnippet {
-  height: 52px;
-  width: 100%;
+.skeletonBtn {
+  height: 18px;
+  width: 70px;
 }
 
 /* Empty State */

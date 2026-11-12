@@ -23,7 +23,7 @@ Sumber data awal: `KODE & QUERY ANNISA.md`.
 ## 3. Tujuan
 - G1: Menemukan query dalam < 3 detik (pencarian + filter).
 - G2: Menyalin SQL dengan 1 klik.
-- G3: Tambah/edit/hapus query lewat form sederhana (4 isian).
+- G3: Tambah/edit/hapus query lewat form sederhana (5 isian).
 - G4: Hanya pengguna login yang bisa mengubah data.
 - G5: Biaya operasional Rp0.
 
@@ -48,7 +48,7 @@ Sumber data awal: `KODE & QUERY ANNISA.md`.
 | US-02 | Viewer | Memfilter berdasarkan kategori dan jenis | Fokus pada satu domain analitik |
 | US-03 | Viewer | Menyalin SQL dengan 1 klik dan melihat toast | Langsung paste ke Superset SQL Lab |
 | US-04 | Editor | Login dengan username dan password | Mendapat izin mengubah data |
-| US-05 | Editor | Menambah query lewat form 4 isian | Koleksi tetap mutakhir |
+| US-05 | Editor | Menambah query lewat form 5 isian | Koleksi tetap mutakhir |
 | US-06 | Editor | Mengedit dan menghapus query | Menjaga isi tetap benar |
 | US-07 | Admin | Menambah atau menonaktifkan akun lewat sheet | Mengontrol siapa yang boleh mengedit |
 
@@ -60,15 +60,16 @@ Sumber data awal: `KODE & QUERY ANNISA.md`.
 | `id` | string | `qry_` + unik (timestamp base36 + acak), dibuat server |
 | `title` | string | wajib, maks 150 karakter |
 | `category` | string | wajib (Rawat Inap, Rawat Jalan, Farmasi, IGD, Dataset, dll.; bisa tambah baru) |
-| `type` | string | wajib, hanya `Query` atau `Dashboard` |
+| `type` | string | wajib, nama yang terdaftar pada master `types`; seed awal: `Query` dan `Dashboard` |
+| `installation` | string | wajib, nama yang terdaftar pada master `installations` |
 | `sql_query` | string | wajib, disimpan sebagai teks biasa |
 | `created_at` | ISO 8601 | diisi server |
 | `updated_at` | ISO 8601 | diisi server |
 | `updated_by` | string | username pengedit terakhir, diisi server |
 
-Form input hanya 4 isian: **Judul, Kategori, Jenis, Query SQL**. Kolom lain otomatis.
+Form query berisi 5 isian: **Judul, Kategori, Jenis, Instalasi, Query SQL**. Kolom lain otomatis.
 
-`type` berarti label pembeda: `Query` untuk query SQL Lab biasa, `Dashboard` untuk query yang dipakai sebagai dataset/chart dashboard.
+`type` berarti label pembeda: seed awal menyediakan `Query` untuk query SQL Lab biasa dan `Dashboard` untuk query yang dipakai sebagai dataset/chart dashboard. Admin dapat mengelola nama jenis pada master data.
 
 ### 6.2 Sheet `users`
 | Kolom | Aturan |
@@ -78,6 +79,9 @@ Form input hanya 4 isian: **Judul, Kategori, Jenis, Query SQL**. Kolom lain otom
 | `active` | `TRUE` / `FALSE`; `FALSE` = tidak bisa login |
 
 Menambah akun: admin mengisi baris baru. Menonaktifkan akun: ubah `active` menjadi `FALSE`.
+
+### 6.3 Master data
+Sheet `categories`, `types`, dan `installations` memakai kolom `id`, `name`, `description`, `color`, `sort_order`, `created_at`, `updated_at`, `updated_by`. Ketiganya dikelola editor melalui halaman Master Data. Perubahan nama diperbarui ke query terkait; penghapusan memindahkan query terkait ke nilai fallback.
 
 ## 7. Kebutuhan Fungsional
 
@@ -102,7 +106,7 @@ Menambah akun: admin mengisi baris baru. Menonaktifkan akun: ubah `active` menja
 
 ### FR-5 CRUD (wajib login)
 - Tambah, edit, hapus lewat modal; hapus butuh konfirmasi.
-- Dropdown kategori memuat kategori yang sudah ada plus opsi "Tambah kategori baru".
+- Dropdown kategori, jenis, dan instalasi memuat master yang tersedia. Editor juga dapat mengelolanya dari halaman Master Data.
 - Validasi di klien dan server.
 
 ### FR-6 Tema
@@ -225,7 +229,7 @@ sequenceDiagram
 | R3 | Brute force login | Batas 5 gagal per username, kunci 15 menit; password panjang |
 | R4 | Kuota dan latensi GAS | Cache klien, kurangi pemanggilan `list` |
 | R5 | Format `.md` tidak konsisten sehingga parser salah | Review manual hasil parser, laporan parser |
-| R6 | Script GAS berjalan atas nama pemilik | Batasi kode hanya membaca/menulis dua sheet ini |
+| R6 | Script GAS berjalan atas nama pemilik | Batasi kode hanya membaca/menulis lima sheet Herbarium |
 
 ## 14. Pertanyaan Terbuka
 - Struktur asli `KODE & QUERY ANNISA.md` (perlu contoh).

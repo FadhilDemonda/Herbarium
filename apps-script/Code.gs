@@ -52,10 +52,7 @@ function doGet(e) {
       error: { code: 'NOT_FOUND', message: 'Action not found: ' + action }
     });
   } catch (err) {
-    return json_({
-      ok: false,
-      error: { code: 'SERVER_ERROR', message: err.toString() }
-    });
+    return serverError_(err);
   }
 }
 
@@ -133,10 +130,7 @@ function doPost(e) {
         });
     }
   } catch (err) {
-    return json_({
-      ok: false,
-      error: { code: 'SERVER_ERROR', message: err.toString() }
-    });
+    return serverError_(err);
   }
 }
 
@@ -177,7 +171,7 @@ function handleList() {
     if (headerMap[requiredCols[r]] === undefined) {
       return json_({
         ok: false,
-        error: { code: 'SERVER_ERROR', message: 'Missing column in queries sheet: ' + requiredCols[r] }
+        error: { code: 'SERVER_ERROR', message: 'Konfigurasi data query belum siap. Hubungi admin.' }
       });
     }
   }
@@ -244,7 +238,7 @@ function handleLogin(body) {
   if (!sheet) {
     return json_({
       ok: false,
-      error: { code: 'SERVER_ERROR', message: 'Users sheet is not configured' }
+      error: { code: 'SERVER_ERROR', message: 'Konfigurasi autentikasi belum siap. Hubungi admin.' }
     });
   }
 
@@ -268,7 +262,7 @@ function handleLogin(body) {
   if (uCol === undefined || pCol === undefined || aCol === undefined) {
     return json_({
       ok: false,
-      error: { code: 'SERVER_ERROR', message: 'Sheet users column configuration error' }
+      error: { code: 'SERVER_ERROR', message: 'Konfigurasi autentikasi belum siap. Hubungi admin.' }
     });
   }
 
@@ -474,7 +468,7 @@ function handleUpdate(body) {
     if (!sheet) {
       return json_({
         ok: false,
-        error: { code: 'NOT_FOUND', message: 'Sheet queries tidak ditemukan' }
+        error: { code: 'SERVER_ERROR', message: 'Konfigurasi data query belum siap. Hubungi admin.' }
       });
     }
 
@@ -592,7 +586,7 @@ function handleDelete(body) {
     if (!sheet) {
       return json_({
         ok: false,
-        error: { code: 'NOT_FOUND', message: 'Sheet queries tidak ditemukan' }
+        error: { code: 'SERVER_ERROR', message: 'Konfigurasi data query belum siap. Hubungi admin.' }
       });
     }
 
@@ -1039,6 +1033,7 @@ function validatePayload(payload) {
   var title = (payload.title || '').toString().trim();
   var category = (payload.category || '').toString().trim();
   var type = (payload.type || '').toString().trim();
+  var installation = (payload.installation || '').toString().trim();
   var sql_query = (payload.sql_query || '').toString();
 
   if (!title) {
@@ -1050,11 +1045,20 @@ function validatePayload(payload) {
   if (!category) {
     return { ok: false, error: { code: 'VALIDATION_ERROR', message: 'Kategori query wajib diisi' } };
   }
+  if (category.length > 100) {
+    return { ok: false, error: { code: 'VALIDATION_ERROR', message: 'Kategori query maksimal 100 karakter' } };
+  }
   if (!type) {
     return { ok: false, error: { code: 'VALIDATION_ERROR', message: 'Jenis query wajib diisi' } };
   }
   if (type.length > 50) {
     return { ok: false, error: { code: 'VALIDATION_ERROR', message: 'Jenis query maksimal 50 karakter' } };
+  }
+  if (!installation) {
+    return { ok: false, error: { code: 'VALIDATION_ERROR', message: 'Instalasi / unit layanan wajib diisi' } };
+  }
+  if (installation.length > 100) {
+    return { ok: false, error: { code: 'VALIDATION_ERROR', message: 'Instalasi / unit layanan maksimal 100 karakter' } };
   }
   if (!sql_query || !sql_query.trim()) {
     return { ok: false, error: { code: 'VALIDATION_ERROR', message: 'Query SQL wajib diisi' } };
@@ -1089,6 +1093,18 @@ function formatIso(val) {
 function json_(obj) {
   return ContentService.createTextOutput(JSON.stringify(obj))
     .setMimeType(ContentService.MimeType.JSON);
+}
+
+/**
+ * Log internal details for the spreadsheet owner without exposing sheet names,
+ * stack traces, or deployment details to the public web endpoint.
+ */
+function serverError_(err) {
+  Logger.log('Herbarium server error: ' + err);
+  return json_({
+    ok: false,
+    error: { code: 'SERVER_ERROR', message: 'Terjadi gangguan pada server. Silakan coba lagi.' }
+  });
 }
 
 /**

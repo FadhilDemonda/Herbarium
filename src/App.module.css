@@ -6,12 +6,12 @@
 }
 
 .workspaceWrapper {
-  max-width: 1520px;
+  max-width: 1720px;
   width: 100%;
   margin: 0 auto;
   padding: var(--space-4) var(--space-6) var(--space-8);
   display: grid;
-  grid-template-columns: 280px minmax(0, 1fr);
+  grid-template-columns: 264px minmax(0, 1fr);
   gap: var(--space-6);
   align-items: start; /* Required for position: sticky on sidebar */
   flex: 1;
@@ -59,21 +59,51 @@
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  padding: 5px 12px;
-  border-radius: var(--radius-md);
-  background-color: var(--surface-2);
-  border: 1px solid var(--border);
+  padding: 4px 10px;
+  border-radius: 8px;
+  background-color: #e8f2eb;
+  color: #234f35;
+  border: 1px solid #c1decb;
   font-size: 0.75rem;
+  font-weight: 600;
+}
+
+:global([data-theme="dark"]) .activeFilterBadge {
+  background-color: #1a2e22;
+  color: #a3ccad;
+  border-color: #2a4835;
+}
+
+.statusDot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background-color: #275338;
+  display: inline-block;
+  flex-shrink: 0;
+}
+
+:global([data-theme="dark"]) .statusDot {
+  background-color: #8dbb98;
 }
 
 .filterPrefix {
-  color: var(--text-muted);
+  color: #275338;
+  opacity: 0.8;
+}
+
+:global([data-theme="dark"]) .filterPrefix {
+  color: #8dbb98;
 }
 
 .filterValue {
   font-family: var(--font-mono);
-  color: var(--primary);
-  font-weight: 600;
+  color: #275338;
+  font-weight: 700;
+}
+
+:global([data-theme="dark"]) .filterValue {
+  color: #a3ccad;
 }
 
 .clearFilterBtn {
@@ -239,17 +269,25 @@
   color: var(--primary);
 }
 
-/* Grid layout for Cards (EXACTLY 2 EQUAL CARDS) */
+/* Grid layout for Cards (3 Columns Side by Side, Clean) */
 .cardGrid {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: var(--space-4);
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 20px;
   width: 100%;
+  padding-bottom: 48px;
+}
+
+@media (max-width: 1240px) {
+  .cardGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
 
 @media (max-width: 768px) {
   .cardGrid {
     grid-template-columns: 1fr;
+    gap: 16px;
   }
 }
 

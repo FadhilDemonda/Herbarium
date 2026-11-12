@@ -58,7 +58,7 @@ export function formatRelativeTime(isoStr) {
     const diffDay = Math.floor(diffHour / 24);
 
     if (diffMin < 1) return 'Baru saja';
-    if (diffMin < 60) return `${diffMin} menit lalu`;
+    if (diffMin < 60) return `${diffMin}m lalu`;
     if (diffHour < 24) return `${diffHour} jam lalu`;
     if (diffDay === 1) return 'Kemarin';
     if (diffDay < 7) return `${diffDay} hari lalu`;

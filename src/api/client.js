@@ -125,7 +125,7 @@ export function getLocalQueries() {
     const cached = localStorage.getItem(STORAGE_KEYS.LOCAL_QUERIES);
     if (cached) {
       const parsed = JSON.parse(cached);
-      if (Array.isArray(parsed) && parsed.length > 0) {
+      if (Array.isArray(parsed)) {
         return parsed.map(q => ({
           ...q,
           installation: inferInstallationFromQuery(q)
@@ -154,7 +154,7 @@ export function getLocalCategories() {
     const cached = localStorage.getItem(STORAGE_KEYS.LOCAL_CATEGORIES);
     if (cached) {
       const parsed = JSON.parse(cached);
-      if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      if (Array.isArray(parsed)) return parsed;
     }
   } catch (e) {
     console.warn('Failed to parse cached local categories:', e);
@@ -175,7 +175,7 @@ export function getLocalTypes() {
     const cached = localStorage.getItem(STORAGE_KEYS.LOCAL_TYPES);
     if (cached) {
       const parsed = JSON.parse(cached);
-      if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      if (Array.isArray(parsed)) return parsed;
     }
   } catch (e) {
     console.warn('Failed to parse cached local types:', e);
@@ -196,7 +196,7 @@ export function getLocalInstallations() {
     const cached = localStorage.getItem(STORAGE_KEYS.LOCAL_INSTALLATIONS);
     if (cached) {
       const parsed = JSON.parse(cached);
-      if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      if (Array.isArray(parsed)) return parsed;
     }
   } catch (e) {
     console.warn('Failed to parse cached local installations:', e);
@@ -340,7 +340,7 @@ export async function listMasters() {
     if (data && Array.isArray(data.categories) && Array.isArray(data.types)) {
       saveLocalCategories(data.categories);
       saveLocalTypes(data.types);
-      const instList = Array.isArray(data.installations) && data.installations.length > 0
+      const instList = Array.isArray(data.installations)
         ? data.installations
         : getLocalInstallations();
       saveLocalInstallations(instList);

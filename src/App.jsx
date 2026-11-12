@@ -158,7 +158,9 @@ export function App() {
     setError(null);
     try {
       const data = await api.listQueries();
-      if (Array.isArray(data) && data.length > 0) {
+      // A valid empty array is authoritative too: it means the server collection
+      // is currently empty and must replace an older local cache.
+      if (Array.isArray(data)) {
         setQueries(data);
       }
 
@@ -517,8 +519,8 @@ export function App() {
               <div className={styles.controlsBar}>
                 <div className={styles.controlsLeft}>
                   <div className={styles.activeFilterBadge}>
-                    <span className={styles.filterPrefix}>Filter:</span>
-                    <span className={styles.filterValue}>{activeFilterText}</span>
+                    <span className={styles.statusDot} aria-hidden="true" />
+                    <span className={styles.filterValue}>{hasActiveFilters ? activeFilterText : 'status=aktif'}</span>
                     {hasActiveFilters && (
                       <button
                         type="button"
