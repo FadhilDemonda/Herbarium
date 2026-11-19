@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import { Modal } from './Modal';
 import { X, Eye, EyeOff, AlertCircle } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from './Toast';
@@ -19,24 +20,8 @@ export function LoginModal({ isOpen, onClose }) {
       setUsername('');
       setPassword('');
       setErrorMessage('');
-      document.body.classList.add('modal-open');
-      setTimeout(() => usernameRef.current?.focus(), 50);
-    } else {
-      document.body.classList.remove('modal-open');
     }
-    return () => document.body.classList.remove('modal-open');
   }, [isOpen]);
-
-  // Handle Esc to close
-  useEffect(() => {
-    function handleKeyDown(e) {
-      if (e.key === 'Escape' && isOpen) {
-        onClose();
-      }
-    }
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isOpen, onClose]);
 
   if (!isOpen) return null;
 
@@ -62,7 +47,7 @@ export function LoginModal({ isOpen, onClose }) {
   };
 
   return (
-    <div className={styles.backdrop} onClick={onClose} role="dialog" aria-modal="true" aria-labelledby="login-title">
+    <Modal isOpen={isOpen} onClose={onClose} className={styles.backdrop} labelledBy="login-title" initialFocusRef={usernameRef} busy={isLoading}>
       <div className={styles.modal} onClick={(e) => e.stopPropagation()}>
         <div className={styles.header}>
           <h2 id="login-title" className={styles.title}>Masuk</h2>
@@ -70,7 +55,8 @@ export function LoginModal({ isOpen, onClose }) {
             type="button"
             className={styles.closeBtn}
             onClick={onClose}
-            aria-label="Tutup dialog masuk"
+              aria-label="Tutup dialog masuk"
+              disabled={isLoading}
           >
             <X size={18} />
           </button>
@@ -121,7 +107,7 @@ export function LoginModal({ isOpen, onClose }) {
                 className={styles.eyeBtn}
                 onClick={() => setShowPassword((prev) => !prev)}
                 aria-label={showPassword ? 'Sembunyikan password' : 'Lihat password'}
-                tabIndex={-1}
+                disabled={isLoading}
               >
                 {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
               </button>
@@ -137,6 +123,6 @@ export function LoginModal({ isOpen, onClose }) {
           </button>
         </form>
       </div>
-    </div>
+    </Modal>
   );
 }

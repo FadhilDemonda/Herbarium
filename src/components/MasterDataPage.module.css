@@ -59,6 +59,7 @@
   gap: var(--space-2);
   border-bottom: 1px solid var(--border);
   margin-bottom: var(--space-6);
+  flex-wrap: wrap;
 }
 
 .tabBtn {
@@ -74,6 +75,7 @@
   font-weight: 500;
   cursor: pointer;
   transition: color var(--transition-fast), border-color var(--transition-fast);
+  min-width: 0;
 }
 
 .tabBtn:hover {
@@ -104,8 +106,8 @@
   background-color: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
-  overflow: hidden;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+  overflow-x: auto;
+  max-width: 100%;
 }
 
 .table {
@@ -209,7 +211,7 @@
 }
 
 .iconBtnDanger:hover {
-  background-color: rgba(168, 67, 47, 0.1);
+  background-color: var(--danger-soft);
   color: var(--danger);
   border-color: var(--danger);
 }
@@ -309,7 +311,7 @@
   width: 100%;
   padding: var(--space-2) var(--space-3);
   background-color: var(--surface);
-  border: 1px solid var(--border);
+  border: 1px solid var(--control-border);
   border-radius: var(--radius-sm);
   color: var(--text);
   font-size: 0.875rem;
@@ -436,8 +438,8 @@
 
 .deleteWarningBox {
   padding: var(--space-3) var(--space-4);
-  background-color: rgba(168, 67, 47, 0.08);
-  border: 1px solid rgba(168, 67, 47, 0.2);
+  background-color: var(--danger-soft);
+  border: 1px solid var(--danger);
   border-radius: var(--radius-sm);
   color: var(--danger);
   font-size: 0.8125rem;
@@ -448,7 +450,7 @@
   height: 38px;
   padding: 0 var(--space-4);
   background-color: var(--danger);
-  color: #FFFFFF;
+  color: var(--danger-text);
   border: none;
   border-radius: var(--radius-sm);
   font-size: 0.875rem;
@@ -468,5 +470,11 @@
   .descCell {
     display: none;
   }
+  .tabBtn { flex: 1 1 120px; padding-inline: 8px; }
 }
 
+.scrollHint {
+  color: var(--text-muted);
+  font-size: 0.75rem;
+  margin-bottom: var(--space-2);
+}

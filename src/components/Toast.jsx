@@ -1,4 +1,5 @@
-import { createContext, useContext, useState, useCallback } from 'react';
+import { createContext, useContext, useState, useCallback, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { CheckCircle2, AlertCircle, Info, X } from 'lucide-react';
 import styles from './Toast.module.css';
 
@@ -6,6 +7,13 @@ const ToastContext = createContext(null);
 
 export function ToastProvider({ children }) {
   const [toasts, setToasts] = useState([]);
+  const [modalHost, setModalHost] = useState(null);
+
+  useEffect(() => {
+    const updateHost = (event) => setModalHost(event.detail);
+    document.addEventListener('herbarium:modalchange', updateHost);
+    return () => document.removeEventListener('herbarium:modalchange', updateHost);
+  }, []);
 
   const removeToast = useCallback((id) => {
     setToasts((prev) => prev.filter((t) => t.id !== id));
@@ -28,7 +36,7 @@ export function ToastProvider({ children }) {
   return (
     <ToastContext.Provider value={{ showToast, removeToast }}>
       {children}
-      <div className={styles.toastContainer} role="region" aria-label="Notifikasi">
+      {createPortal(<div className={styles.toastContainer} role="region" aria-label="Notifikasi">
         {toasts.map((toast) => (
           <div key={toast.id} className={styles.toastItem} role="alert">
             <div className={styles.toastContent}>
@@ -46,7 +54,7 @@ export function ToastProvider({ children }) {
             </button>
           </div>
         ))}
-      </div>
+      </div>, modalHost || document.body)}
     </ToastContext.Provider>
   );
 }

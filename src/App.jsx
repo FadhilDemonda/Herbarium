@@ -17,6 +17,7 @@ import { exportToCsv, exportToJson } from './lib/export';
 import * as api from './api/client';
 import { Plus, LayoutGrid, List, Download, ChevronDown, FileSpreadsheet, FileCode, X, Info } from 'lucide-react';
 import styles from './App.module.css';
+import { useDropdownMenu } from './hooks/useDropdownMenu';
 
 export function App() {
   const { isLoggedIn, isLoginModalOpen, closeLoginModal } = useAuth();
@@ -75,6 +76,8 @@ export function App() {
   const [sortBy, setSortBy] = useState('updated_desc');
   const [isExportOpen, setIsExportOpen] = useState(false);
   const exportRef = useRef(null);
+  const exportTriggerRef = useRef(null);
+  const exportMenu = useDropdownMenu({ isOpen: isExportOpen, onClose: () => setIsExportOpen(false), triggerRef: exportTriggerRef, menuRef: exportRef });
 
   // Save view mode
   useEffect(() => {
@@ -84,17 +87,6 @@ export function App() {
       console.warn('Failed to save view mode:', e);
     }
   }, [viewMode]);
-
-  // Click outside to close export dropdown
-  useEffect(() => {
-    function handleClickOutside(event) {
-      if (exportRef.current && !exportRef.current.contains(event.target)) {
-        setIsExportOpen(false);
-      }
-    }
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
 
   // Modals state
   const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false);
@@ -560,6 +552,7 @@ export function App() {
                       className={`${styles.viewModeBtn} ${viewMode === 'grid' ? styles.viewModeBtnActive : ''}`}
                       onClick={() => setViewMode('grid')}
                       aria-label="Tampilan Kartu (Grid)"
+                      aria-pressed={viewMode === 'grid'}
                       title="Tampilan Kartu"
                     >
                       <LayoutGrid size={15} />
@@ -569,6 +562,7 @@ export function App() {
                       className={`${styles.viewModeBtn} ${viewMode === 'table' ? styles.viewModeBtnActive : ''}`}
                       onClick={() => setViewMode('table')}
                       aria-label="Tampilan Tabel Ringkas"
+                      aria-pressed={viewMode === 'table'}
                       title="Tampilan Tabel"
                     >
                       <List size={15} />
@@ -576,10 +570,11 @@ export function App() {
                   </div>
 
                   {/* Export Dropdown */}
-                  <div className={styles.exportContainer} ref={exportRef}>
+                  <div className={styles.exportContainer}>
                     <button
                       type="button"
                       className={styles.exportBtn}
+                      ref={exportTriggerRef}
                       onClick={() => setIsExportOpen((prev) => !prev)}
                       aria-haspopup="true"
                       aria-expanded={isExportOpen}
@@ -591,7 +586,7 @@ export function App() {
                     </button>
 
                     {isExportOpen && (
-                      <div className={styles.exportDropdown} role="menu">
+                      <div className={styles.exportDropdown} role="menu" ref={exportRef} onKeyDown={exportMenu.onMenuKeyDown} aria-label="Format ekspor">
                         <button
                           type="button"
                           className={styles.exportDropdownItem}

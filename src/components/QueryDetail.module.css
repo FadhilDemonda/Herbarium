@@ -25,7 +25,7 @@
   height: 100%;
   background-color: var(--surface);
   border-left: 1px solid var(--border);
-  box-shadow: -8px 0 32px rgba(0, 0, 0, 0.2);
+  box-shadow: var(--shadow-drawer);
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -124,10 +124,6 @@
   margin: 0;
 }
 
-:global([data-theme="dark"]) .drawerTitle {
-  color: #F4F4F5;
-}
-
 .drawerDesc {
   font-size: 0.8125rem;
   color: var(--text-muted);
@@ -209,6 +205,8 @@
   display: flex;
   align-items: center;
   gap: 8px;
+  min-width: 0;
+  flex-wrap: wrap;
 }
 
 .sectionTitle {
@@ -259,7 +257,6 @@
   border-radius: var(--radius-md);
   background-color: var(--sql-bg);
   border: 1px solid var(--border);
-  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.05);
   overflow: hidden;
 }
 
@@ -273,12 +270,16 @@
   font-family: var(--font-mono);
   font-size: 0.6875rem;
   color: var(--text-muted);
+  flex-wrap: wrap;
+  gap: var(--space-2);
 }
 
 .codeFileInfo {
   display: flex;
   align-items: center;
   gap: 6px;
+  min-width: 0;
+  max-width: 100%;
 }
 
 .fileIcon {
@@ -288,6 +289,7 @@
 .fileNameText {
   color: var(--text);
   font-weight: 600;
+  overflow-wrap: anywhere;
 }
 
 .fileDialect {
@@ -308,7 +310,6 @@
   text-align: right;
   padding-right: var(--space-3);
   color: var(--text-muted);
-  opacity: 0.5;
   border-right: 1px solid var(--border);
   margin-right: var(--space-3);
   font-size: 0.75rem;
@@ -347,7 +348,7 @@
   border-radius: var(--radius-md);
   border: 1px solid var(--border);
   background-color: var(--surface-2);
-  overflow: hidden;
+  overflow-x: auto;
 }
 
 .paramTable {
@@ -467,12 +468,14 @@
   justify-content: space-between;
   gap: var(--space-3);
   flex-shrink: 0;
+  flex-wrap: wrap;
 }
 
 .footerLeftActions {
   display: flex;
   align-items: center;
   gap: 8px;
+  flex-wrap: wrap;
 }
 
 .secondaryBtn {
@@ -513,7 +516,7 @@
 }
 
 .dangerBtn:hover {
-  background-color: rgba(168, 67, 47, 0.1);
+  background-color: var(--danger-soft);
 }
 
 .primarySupersetBtn {
@@ -530,10 +533,16 @@
   gap: 8px;
   cursor: pointer;
   transition: all var(--transition-fast);
-  box-shadow: 0 2px 8px rgba(63, 107, 79, 0.2);
 }
 
 .primarySupersetBtn:hover {
   background-color: var(--primary-hover);
   transform: translateY(-1px);
+}
+
+@media (max-width: 640px) {
+  .drawerHeader, .drawerBody { padding: var(--space-4); }
+  .drawerFooter { padding: var(--space-3) var(--space-4); padding-bottom: max(var(--space-3), env(safe-area-inset-bottom)); }
+  .primarySupersetBtn { flex: 1 1 200px; height: auto; }
+  .sectionHeader { flex-wrap: wrap; }
 }

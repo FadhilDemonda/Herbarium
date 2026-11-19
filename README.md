@@ -42,6 +42,17 @@ npm run build
 
 ## Struktur proyek
 
+### Tes regresi UI
+
+`@playwright/test` dipakai sebagai dependency pengembangan untuk memeriksa layout browser, keyboard, fokus modal, clipboard, kontras, dan kegagalan aksi. Tidak menambah dependency produksi.
+
+```bash
+npx playwright install chromium
+npm test
+```
+
+Tes menjalankan Vite sendiri pada `127.0.0.1:5186`, memakai data JSON repo, dan mencegat seluruh request GAS. Tidak memakai kredensial atau menulis ke backend nyata. Port tersebut harus kosong; tes tidak memakai ulang server yang sudah berjalan. Screenshot/trace kegagalan tersimpan di `test-results/` (diabaikan Git).
+
 ```text
 apps-script/  Backend Google Apps Script dan panduan setup
 data/         Seed lokal untuk demo dan migrasi

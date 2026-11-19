@@ -24,3 +24,8 @@ yarn-error.log*
 Thumbs.db
 .vscode/
 .idea/
+
+# Browser regression output and execution scratch
+test-results/
+playwright-report/
+.superpowers/

@@ -4,7 +4,8 @@ import reactPlugin from 'eslint-plugin-react';
 import reactHooks from 'eslint-plugin-react-hooks';
 
 export default [
-  { ignores: ['dist', 'node_modules', 'data', 'apps-script', 'scripts'] },
+  { files: ['playwright.config.js', 'tests/**/*.js'], languageOptions: { globals: globals.node } },
+  { ignores: ['dist', 'node_modules', 'data', 'apps-script', 'scripts', 'test-results', 'playwright-report', '.superpowers'] },
   {
     files: ['**/*.{js,jsx}'],
     languageOptions: {

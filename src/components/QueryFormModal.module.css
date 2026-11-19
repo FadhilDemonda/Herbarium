@@ -124,7 +124,7 @@
 .select {
   height: 40px;
   background-color: var(--surface);
-  border: 1px solid var(--border);
+  border: 1px solid var(--control-border);
   border-radius: var(--radius-sm);
   padding: 0 var(--space-3);
   font-size: 0.875rem;
@@ -144,7 +144,7 @@
 .textarea {
   min-height: 240px;
   background-color: var(--surface);
-  border: 1px solid var(--border);
+  border: 1px solid var(--control-border);
   border-radius: var(--radius-sm);
   padding: var(--space-3);
   font-family: var(--font-mono);

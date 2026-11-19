@@ -45,7 +45,6 @@
   border-radius: var(--radius-lg);
   background-color: var(--surface);
   border: 1px solid var(--border);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
 }
 
 .controlsLeft {
@@ -61,49 +60,33 @@
   gap: 6px;
   padding: 4px 10px;
   border-radius: 8px;
-  background-color: #e8f2eb;
-  color: #234f35;
-  border: 1px solid #c1decb;
+  background-color: var(--primary-soft);
+  color: var(--primary);
+  border: 1px solid var(--border);
   font-size: 0.75rem;
   font-weight: 600;
-}
-
-:global([data-theme="dark"]) .activeFilterBadge {
-  background-color: #1a2e22;
-  color: #a3ccad;
-  border-color: #2a4835;
 }
 
 .statusDot {
   width: 6px;
   height: 6px;
   border-radius: 50%;
-  background-color: #275338;
+  background-color: var(--primary);
   display: inline-block;
   flex-shrink: 0;
 }
 
-:global([data-theme="dark"]) .statusDot {
-  background-color: #8dbb98;
-}
-
 .filterPrefix {
-  color: #275338;
+  color: var(--primary);
   opacity: 0.8;
-}
-
-:global([data-theme="dark"]) .filterPrefix {
-  color: #8dbb98;
 }
 
 .filterValue {
   font-family: var(--font-mono);
-  color: #275338;
+  overflow-wrap: anywhere;
+  min-width: 0;
+  color: var(--primary);
   font-weight: 700;
-}
-
-:global([data-theme="dark"]) .filterValue {
-  color: #a3ccad;
 }
 
 .clearFilterBtn {
@@ -139,12 +122,15 @@
   display: flex;
   align-items: center;
   gap: 8px;
+  flex-wrap: wrap;
+  min-width: 0;
+  max-width: 100%;
 }
 
 .sortSelect {
   height: 34px;
   background-color: var(--surface-2);
-  border: 1px solid var(--border);
+  border: 1px solid var(--control-border);
   border-radius: var(--radius-md);
   padding: 0 28px 0 12px;
   font-size: 0.75rem;
@@ -195,7 +181,6 @@
   background-color: var(--surface);
   color: var(--primary);
   border: 1px solid var(--border);
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
 }
 
 .exportContainer {
@@ -302,13 +287,20 @@
   border: 1px solid var(--border);
   font-size: 0.75rem;
   color: var(--text-muted);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
 }
 
 .feedFooterLeft {
   display: flex;
   align-items: center;
   gap: 8px;
+  min-width: 0;
+}
+
+@media (max-width: 640px) {
+  .controlsRight { width: 100%; }
+  .sortSelect { flex: 1 1 100%; min-width: 0; width: 100%; }
+  .feedFooterBar { flex-wrap: wrap; gap: var(--space-3); }
+  .activeFilterBadge { max-width: 100%; }
 }
 
 .infoIcon {

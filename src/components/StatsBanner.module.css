@@ -19,7 +19,6 @@
   background-color: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.05);
 }
 
 @media (max-width: 900px) {
@@ -48,7 +47,6 @@
 .interactiveStat:hover {
   border-color: var(--ring);
   background-color: var(--surface);
-  transform: translateY(-1px);
 }
 
 .statMain {

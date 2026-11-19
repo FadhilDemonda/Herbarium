@@ -4,6 +4,7 @@ import { CategoryBadge, TypeBadge, InstallationBadge, BADGE_COLOR_PRESETS } from
 import { formatIndonesianDate } from '../lib/syntax';
 import { useToast } from './Toast';
 import * as api from '../api/client';
+import { Modal } from './Modal';
 import styles from './MasterDataPage.module.css';
 
 export function MasterDataPage({
@@ -234,11 +235,23 @@ export function MasterDataPage({
       </div>
 
       {/* Navigation Tabs */}
-      <div className={styles.tabsNav} role="tablist">
+      <div className={styles.tabsNav} role="tablist" aria-label="Kelompok master data" onKeyDown={(event) => {
+        const keys = ['ArrowRight', 'ArrowLeft', 'Home', 'End'];
+        if (!keys.includes(event.key)) return;
+        event.preventDefault();
+        const tabs = [...event.currentTarget.querySelectorAll('[role="tab"]')];
+        const index = tabs.indexOf(document.activeElement);
+        const next = event.key === 'Home' ? 0 : event.key === 'End' ? tabs.length - 1 : (index + (event.key === 'ArrowRight' ? 1 : -1) + tabs.length) % tabs.length;
+        tabs[next].focus();
+        tabs[next].click();
+      }}>
         <button
           type="button"
           role="tab"
           aria-selected={activeTab === 'categories'}
+          id="master-tab-categories"
+          aria-controls="master-panel"
+          tabIndex={activeTab === 'categories' ? 0 : -1}
           className={`${styles.tabBtn} ${activeTab === 'categories' ? styles.tabBtnActive : ''}`}
           onClick={() => setActiveTab('categories')}
         >
@@ -251,6 +264,9 @@ export function MasterDataPage({
           type="button"
           role="tab"
           aria-selected={activeTab === 'installations'}
+          id="master-tab-installations"
+          aria-controls="master-panel"
+          tabIndex={activeTab === 'installations' ? 0 : -1}
           className={`${styles.tabBtn} ${activeTab === 'installations' ? styles.tabBtnActive : ''}`}
           onClick={() => setActiveTab('installations')}
         >
@@ -263,6 +279,9 @@ export function MasterDataPage({
           type="button"
           role="tab"
           aria-selected={activeTab === 'types'}
+          id="master-tab-types"
+          aria-controls="master-panel"
+          tabIndex={activeTab === 'types' ? 0 : -1}
           className={`${styles.tabBtn} ${activeTab === 'types' ? styles.tabBtnActive : ''}`}
           onClick={() => setActiveTab('types')}
         >
@@ -273,7 +292,9 @@ export function MasterDataPage({
       </div>
 
       {/* Table List */}
-      <div className={styles.tableCard}>
+      <div role="tabpanel" id="master-panel" aria-labelledby={`master-tab-${activeTab}`}>
+      <p className={styles.scrollHint} id="master-scroll-hint">Geser tabel untuk melihat semua kolom dan aksi.</p>
+      <div className={styles.tableCard} role="region" aria-label={`Daftar master ${tabMeta.lowerSingular}`} aria-describedby="master-scroll-hint" tabIndex={0}>
         <table className={styles.table}>
           <thead>
             <tr>
@@ -351,17 +372,20 @@ export function MasterDataPage({
         </table>
       </div>
 
+      </div>
+
       {/* Modal Form Tambah / Edit */}
       {isFormOpen && (
-        <div
+        <Modal
+          isOpen={isFormOpen}
           className={styles.modalBackdrop}
-          onClick={() => !isSubmitting && setIsFormOpen(false)}
-          role="dialog"
-          aria-modal="true"
+          onClose={() => setIsFormOpen(false)}
+          busy={isSubmitting}
+          labelledBy="master-form-title"
         >
           <div className={styles.modalContent} onClick={(e) => e.stopPropagation()}>
             <div className={styles.modalHeader}>
-              <h2 className={styles.modalTitle}>
+              <h2 className={styles.modalTitle} id="master-form-title">
                 {editingItem
                   ? `Edit ${tabMeta.singular}`
                   : `Tambah ${tabMeta.singular} Baru`}
@@ -371,6 +395,7 @@ export function MasterDataPage({
                 className={styles.closeBtn}
                 onClick={() => !isSubmitting && setIsFormOpen(false)}
                 aria-label="Tutup form"
+                disabled={isSubmitting}
               >
                 <X size={18} />
               </button>
@@ -392,6 +417,8 @@ export function MasterDataPage({
                   </label>
                   <input
                     id="master-name"
+                    aria-invalid={!!formErrors.name}
+                    aria-describedby={formErrors.name ? 'master-name-error' : undefined}
                     type="text"
                     className={styles.input}
                     placeholder={tabMeta.placeholder}
@@ -401,7 +428,7 @@ export function MasterDataPage({
                     autoFocus
                   />
                   {formErrors.name && (
-                    <span className={styles.errorMsg}>
+                    <span className={styles.errorMsg} id="master-name-error" role="alert">
                       <AlertTriangle size={12} /> {formErrors.name}
                     </span>
                   )}
@@ -440,8 +467,8 @@ export function MasterDataPage({
 
                 {/* Warna Badge Preset */}
                 <div className={styles.formGroup}>
-                  <label className={styles.label}>Pilihan Warna Badge</label>
-                  <div className={styles.colorPickerRow}>
+                  <span className={styles.label} id="master-color-label">Pilihan Warna Badge</span>
+                  <div className={styles.colorPickerRow} role="group" aria-labelledby="master-color-label">
                     {BADGE_COLOR_PRESETS.map((preset) => (
                       <button
                         key={preset.id}
@@ -451,6 +478,8 @@ export function MasterDataPage({
                         onClick={() => setFormColor(preset.id)}
                         title={preset.label}
                         aria-label={`Pilih warna ${preset.label}`}
+                        aria-pressed={formColor === preset.id}
+                        disabled={isSubmitting}
                       >
                         {formColor === preset.id ? '✓' : ''}
                       </button>
@@ -499,20 +528,21 @@ export function MasterDataPage({
               </div>
             </form>
           </div>
-        </div>
+        </Modal>
       )}
 
       {/* Delete Confirmation Dialog */}
       {deletingItem && (
-        <div
+        <Modal
+          isOpen={!!deletingItem}
           className={styles.modalBackdrop}
-          onClick={() => !isSubmitting && setDeletingItem(null)}
-          role="dialog"
-          aria-modal="true"
+          onClose={() => setDeletingItem(null)}
+          busy={isSubmitting}
+          labelledBy="master-delete-title"
         >
           <div className={styles.modalContent} onClick={(e) => e.stopPropagation()}>
             <div className={styles.modalHeader}>
-              <h2 className={styles.modalTitle}>
+              <h2 className={styles.modalTitle} id="master-delete-title">
                 Hapus {tabMeta.singular}
               </h2>
               <button
@@ -520,6 +550,7 @@ export function MasterDataPage({
                 className={styles.closeBtn}
                 onClick={() => !isSubmitting && setDeletingItem(null)}
                 aria-label="Tutup dialog"
+                disabled={isSubmitting}
               >
                 <X size={18} />
               </button>
@@ -568,7 +599,7 @@ export function MasterDataPage({
               </button>
             </div>
           </div>
-        </div>
+        </Modal>
       )}
     </div>
   );

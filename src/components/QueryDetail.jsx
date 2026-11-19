@@ -1,4 +1,5 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useMemo } from 'react';
+import { Modal } from './Modal';
 import {
   X,
   Copy,
@@ -32,26 +33,6 @@ export function QueryDetail({
   const [copied, setCopied] = useState(false);
   const { showToast } = useToast();
   const { isLoggedIn } = useAuth();
-
-  // Close on Esc key and manage modal-open body class
-  useEffect(() => {
-    if (!query) {
-      document.body.classList.remove('modal-open');
-      return;
-    }
-
-    function handleKeyDown(e) {
-      if (e.key === 'Escape') {
-        onClose();
-      }
-    }
-    window.addEventListener('keydown', handleKeyDown);
-    document.body.classList.add('modal-open');
-    return () => {
-      window.removeEventListener('keydown', handleKeyDown);
-      document.body.classList.remove('modal-open');
-    };
-  }, [query, onClose]);
 
   const handleCopy = async () => {
     if (!query?.sql_query) return;
@@ -96,12 +77,11 @@ export function QueryDetail({
   if (!query) return null;
 
   return (
-    <div
+    <Modal
+      isOpen={!!query}
       className={styles.backdrop}
-      onClick={onClose}
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="drawer-query-title"
+      onClose={onClose}
+      labelledBy="drawer-query-title"
     >
       <aside className={styles.drawer} onClick={(e) => e.stopPropagation()}>
         {/* Drawer Header */}
@@ -323,6 +303,6 @@ export function QueryDetail({
           </button>
         </div>
       </aside>
-    </div>
+    </Modal>
   );
 }

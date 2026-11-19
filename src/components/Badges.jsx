@@ -16,6 +16,10 @@ export function resolveBadgeColorClass(color, defaultColor = 'neutral') {
   return styles[`color_${c}`] || styles[`color_${defaultColor}`] || styles.baseBadge;
 }
 
+export function Badge({ color = 'neutral', className = '', children }) {
+  return <span className={`${styles.baseBadge} ${resolveBadgeColorClass(color)} ${className}`.trim()}>{children}</span>;
+}
+
 export function CategoryBadge({ category, color = 'terracotta', className = '' }) {
   if (!category) return null;
   const colorClass = resolveBadgeColorClass(color, 'terracotta');

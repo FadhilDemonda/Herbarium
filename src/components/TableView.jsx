@@ -47,18 +47,11 @@ export function TableView({ queries, onSelect, categoryColorMap = {}, typeColorM
                 key={query.id}
                 className={styles.tr}
                 onClick={() => onSelect(query)}
-                tabIndex={0}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter' || e.key === ' ') {
-                    e.preventDefault();
-                    onSelect(query);
-                  }
-                }}
-                role="button"
-                aria-label={`Buka detail query ${query.title}`}
               >
                 <td className={`${styles.td} ${styles.titleCell}`} title={query.title}>
-                  {query.title}
+                  <button type="button" className={styles.titleButton} onClick={(event) => { event.stopPropagation(); onSelect(query); }} aria-label={`Buka detail query ${query.title}`}>
+                    {query.title}
+                  </button>
                 </td>
                 <td className={styles.td}>
                   <CategoryBadge category={query.category} color={catColor} />

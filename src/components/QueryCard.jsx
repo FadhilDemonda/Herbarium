@@ -15,6 +15,7 @@ import {
 import { copyToClipboard } from '../lib/clipboard';
 import { formatRelativeTime, extractTableNames } from '../lib/syntax';
 import { useToast } from './Toast';
+import { Badge } from './Badges';
 import styles from './QueryCard.module.css';
 
 /**
@@ -27,7 +28,7 @@ function getInstallationInfo(installation) {
     return {
       label: norm.startsWith('instalasi') ? installation : `Instalasi ${installation || 'Rawat Inap'}`,
       icon: Activity,
-      theme: 'forest', // green: #e8f2eb / #275338 / #bdeecb
+      theme: 'forest',
     };
   }
 
@@ -35,7 +36,7 @@ function getInstallationInfo(installation) {
     return {
       label: norm.includes('kamar operasi') ? 'Kamar Operasi (OK)' : installation,
       icon: Scissors,
-      theme: 'terracotta', // terracotta: #fdf2e9 / #904b2e / #fddbc6
+      theme: 'terracotta',
     };
   }
 
@@ -43,7 +44,7 @@ function getInstallationInfo(installation) {
     return {
       label: norm.includes('apotek') ? installation : 'Farmasi & Apotek',
       icon: Pill,
-      theme: 'forest', // green: #e8f2eb / #275338 / #bdeecb
+      theme: 'forest',
     };
   }
 
@@ -157,14 +158,6 @@ export function QueryCard({
     <article
       className={`${styles.card} ${isActive ? styles.cardActive : ''}`}
       onClick={() => onSelect(query)}
-      tabIndex={0}
-      role="button"
-      onKeyDown={(e) => {
-        if (e.key === 'Enter' || e.key === ' ') {
-          e.preventDefault();
-          onSelect(query);
-        }
-      }}
       aria-label={`Buka detail query: ${query.title}`}
     >
       {/* Active Drawer Indicator Dot on top-right border */}
@@ -179,10 +172,10 @@ export function QueryCard({
       <div className={styles.topSection}>
         {/* Top Row: Unit Badge + Action Icons */}
         <div className={styles.topRow}>
-          <span className={`${styles.unitBadge} ${styles['unit_' + installationInfo.theme]}`}>
+          <Badge color={installationInfo.theme} className={styles.unitBadge}>
             <InstallationIcon size={12} strokeWidth={2.4} className={styles.unitIcon} />
             <span>{installationInfo.label}</span>
-          </span>
+          </Badge>
 
           <div className={styles.actionsGroup}>
             <button
@@ -199,12 +192,13 @@ export function QueryCard({
               className={`${styles.iconActionBtn} ${isFavorite ? styles.favoriteActive : ''}`}
               onClick={handleStar}
               aria-label={isFavorite ? 'Hapus dari favorit' : 'Tambah ke bookmark'}
+              aria-pressed={isFavorite}
               title="Simpan Bookmark"
             >
               <Star
                 size={14}
-                fill={isFavorite ? '#eab308' : 'none'}
-                stroke={isFavorite ? '#eab308' : 'currentColor'}
+                fill={isFavorite ? 'currentColor' : 'none'}
+                stroke="currentColor"
               />
             </button>
           </div>
@@ -254,11 +248,9 @@ export function QueryCard({
       {/* Card Footer */}
       <div className={styles.cardFooter}>
         <div className={styles.footerLeft}>
-          <span
-            className={`${styles.categoryBadge} ${styles['cat_' + categoryBadgeInfo.theme]}`}
-          >
+          <Badge color={categoryBadgeInfo.theme} className={styles.categoryBadge}>
             {categoryBadgeInfo.label}
-          </span>
+          </Badge>
           <span className={styles.timeAgoText}>
             {formatRelativeTime(query.updated_at)}
           </span>

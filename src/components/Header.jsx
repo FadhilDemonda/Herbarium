@@ -1,4 +1,5 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef } from 'react';
+import { useDropdownMenu } from '../hooks/useDropdownMenu';
 import { Search, Sun, Moon, Plus, User, LogOut, ChevronDown, Database, BookOpen } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../hooks/useTheme';
@@ -14,17 +15,8 @@ export function Header({
   const { theme, toggleTheme } = useTheme();
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const dropdownRef = useRef(null);
-
-  // Close dropdown on outside click
-  useEffect(() => {
-    function handleClickOutside(event) {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
-        setIsDropdownOpen(false);
-      }
-    }
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
+  const userTriggerRef = useRef(null);
+  const userMenu = useDropdownMenu({ isOpen: isDropdownOpen, onClose: () => setIsDropdownOpen(false), triggerRef: userTriggerRef, menuRef: dropdownRef });
 
   const userInitial = user ? user.charAt(0).toUpperCase() : 'U';
 
@@ -33,18 +25,12 @@ export function Header({
       <div className={styles.headerContainer}>
         {/* Brand & Nav Switcher */}
         <div className={styles.brandGroup}>
-          <div
+          <button
+            type="button"
             className={styles.brandLogo}
             onClick={() => {
               if (onNavigate) onNavigate('queries');
               window.scrollTo({ top: 0, behavior: 'smooth' });
-            }}
-            role="button"
-            tabIndex={0}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter') {
-                if (onNavigate) onNavigate('queries');
-              }
             }}
           >
             <div className={styles.logoIconBox}>
@@ -69,7 +55,7 @@ export function Header({
               </div>
               <p className={styles.brandTagline}>Pustaka query Superset</p>
             </div>
-          </div>
+          </button>
 
           {/* Navigation Switcher: Visible on desktop */}
           {isLoggedIn && onNavigate && (
@@ -129,7 +115,7 @@ export function Header({
               {activePage === 'queries' && (
                 <button
                   type="button"
-                  className={styles.primaryAddBtn}
+                  className={`${styles.primaryAddBtn} ${styles.desktopAddBtn}`}
                   onClick={onOpenCreateModal}
                   aria-label="Tambah query baru"
                 >
@@ -139,10 +125,11 @@ export function Header({
               )}
 
               {/* User Avatar & Dropdown */}
-              <div className={styles.userMenuContainer} ref={dropdownRef}>
+              <div className={styles.userMenuContainer}>
                 <button
                   type="button"
                   className={styles.userProfileBtn}
+                  ref={userTriggerRef}
                   onClick={() => setIsDropdownOpen((prev) => !prev)}
                   aria-haspopup="true"
                   aria-expanded={isDropdownOpen}
@@ -159,7 +146,7 @@ export function Header({
                 </button>
 
                 {isDropdownOpen && (
-                  <div className={styles.userDropdown} role="menu">
+                  <div className={styles.userDropdown} role="menu" ref={dropdownRef} onKeyDown={userMenu.onMenuKeyDown} aria-label="Menu pengguna">
                     {onNavigate && (
                       <>
                         <button

@@ -59,6 +59,14 @@
   line-height: 1.4;
 }
 
+.errorMessage {
+  color: var(--danger);
+  background-color: var(--danger-soft);
+  padding: var(--space-3);
+  border: 1px solid var(--danger);
+  border-radius: var(--radius-sm);
+}
+
 .queryTitle {
   font-weight: 600;
   color: var(--text);
@@ -99,7 +107,7 @@
   height: 40px;
   padding: 0 var(--space-5);
   background-color: var(--danger);
-  color: #ffffff;
+  color: var(--danger-text);
   border: none;
   border-radius: var(--radius-md);
   font-weight: 600;

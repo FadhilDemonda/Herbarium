@@ -12,16 +12,20 @@
   --primary-hover: #345A42;
   --primary-soft: #E3EDE4;
   --primary-text: #FFFFFF;
-  --accent: #B86B4B;
+  --accent: #934C30;
   --accent-soft: #F3E4DA;
   --success: #4C7A58;
   --warning: #A87B1F;
   --danger: #A8432F;
-  --ring: #6F9A7C;
+  --danger-text: #FFFFFF;
+  --danger-soft: #F4E7E0;
+  --favorite: #825A0D;
+  --ring: #3F6B4F;
+  --control-border: #7E8C80;
 
   /* Badge Color Presets - Light Mode */
   --badge-terracotta-bg: #F3E4DA;
-  --badge-terracotta-text: #B86B4B;
+  --badge-terracotta-text: #934C30;
   --badge-terracotta-border: #E6CDBC;
   --badge-forest-bg: #E3EDE4;
   --badge-forest-text: #3F6B4F;
@@ -30,7 +34,7 @@
   --badge-teal-text: #2A6E69;
   --badge-teal-border: #BDE2DE;
   --badge-amber-bg: #F8F0DA;
-  --badge-amber-text: #966812;
+  --badge-amber-text: #825A0D;
   --badge-amber-border: #ECD9A8;
   --badge-berry-bg: #F6E3E6;
   --badge-berry-text: #9E3B50;
@@ -47,22 +51,25 @@
   --sql-keyword: #3F6B4F;
   --sql-function: #2F6F6B;
   --sql-string: #A4573A;
-  --sql-number: #9A6B14;
-  --sql-comment: #8A9488;
+  --sql-number: #80580F;
+  --sql-comment: #5E6B62;
   --sql-operator: #5E6B62;
   --sql-identifier: var(--text);
 
   /* Shadows */
   --shadow-float: 0 8px 30px rgba(31, 42, 36, 0.10);
   --backdrop-bg: rgba(18, 26, 21, 0.45);
+  --shadow-drawer: -8px 0 32px rgba(31, 42, 36, 0.16);
 
   /* Spacing */
   --space-1: 4px;
   --space-2: 8px;
   --space-3: 12px;
   --space-4: 16px;
+  --space-5: 20px;
   --space-6: 24px;
   --space-8: 32px;
+  --space-10: 40px;
   --space-12: 48px;
   --space-16: 64px;
 
@@ -98,7 +105,11 @@
   --success: #7FBF8E;
   --warning: #D9B35A;
   --danger: #E0846F;
-  --ring: #6F9A7C;
+  --danger-text: #23100C;
+  --danger-soft: #3B2923;
+  --favorite: #D9B35A;
+  --ring: #8DBB98;
+  --control-border: #6D8071;
 
   /* Badge Color Presets - Dark Mode */
   --badge-terracotta-bg: #3A2A22;
@@ -129,13 +140,14 @@
   --sql-function: #7CC3BC;
   --sql-string: #D99A7A;
   --sql-number: #D9B35A;
-  --sql-comment: #6E7C72;
+  --sql-comment: #91A095;
   --sql-operator: #9BAA9F;
   --sql-identifier: var(--text);
 
   /* Shadows */
   --shadow-float: 0 8px 30px rgba(0, 0, 0, 0.40);
   --backdrop-bg: rgba(0, 0, 0, 0.65);
+  --shadow-drawer: -8px 0 32px rgba(0, 0, 0, 0.4);
 }
 
 @media (prefers-reduced-motion: reduce) {

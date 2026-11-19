@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { X, AlertCircle, Sparkles } from 'lucide-react';
 import { formatSql } from '../lib/formatter';
+import { Modal } from './Modal';
 import styles from './QueryFormModal.module.css';
 
 const DEFAULT_TYPES = ['Query', 'Dashboard'];
@@ -45,13 +46,16 @@ export function QueryFormModal({
   const [errors, setErrors] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const titleInputRef = useRef(null);
+  const initializedRef = useRef({ isOpen: false, initialData: null });
 
   const availableTypes = existingTypes.length > 0 ? existingTypes : DEFAULT_TYPES;
   const availableInstallations = existingInstallations.length > 0 ? existingInstallations : DEFAULT_INSTALLATIONS;
 
   // Initialize or reset form state
   useEffect(() => {
-    if (isOpen) {
+    const shouldInitialize = isOpen && (!initializedRef.current.isOpen || initializedRef.current.initialData !== initialData);
+    initializedRef.current = { isOpen, initialData };
+    if (shouldInitialize) {
       if (initialData) {
         setTitle(initialData.title || '');
         setSqlQuery(initialData.sql_query || '');
@@ -108,24 +112,8 @@ export function QueryFormModal({
         setSqlQuery('');
       }
       setErrors({});
-      document.body.classList.add('modal-open');
-      setTimeout(() => titleInputRef.current?.focus(), 50);
-    } else {
-      document.body.classList.remove('modal-open');
     }
-    return () => document.body.classList.remove('modal-open');
   }, [isOpen, initialData, existingCategories, availableTypes, availableInstallations]);
-
-  // Handle Esc key
-  useEffect(() => {
-    function handleKeyDown(e) {
-      if (e.key === 'Escape' && isOpen) {
-        onClose();
-      }
-    }
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isOpen, onClose]);
 
   if (!isOpen) return null;
 
@@ -222,7 +210,7 @@ export function QueryFormModal({
   };
 
   return (
-    <div className={styles.backdrop} onClick={onClose} role="dialog" aria-modal="true" aria-labelledby="form-title">
+    <Modal isOpen={isOpen} onClose={onClose} className={styles.backdrop} labelledBy="form-title" initialFocusRef={titleInputRef} busy={isSubmitting}>
       <div className={styles.modal} onClick={(e) => e.stopPropagation()}>
         <div className={styles.header}>
           <h2 id="form-title" className={styles.title}>
@@ -233,6 +221,7 @@ export function QueryFormModal({
             className={styles.closeBtn}
             onClick={onClose}
             aria-label="Tutup form"
+            disabled={isSubmitting}
           >
             <X size={18} />
           </button>
@@ -255,6 +244,8 @@ export function QueryFormModal({
             <input
               ref={titleInputRef}
               id="query-title"
+              aria-invalid={!!errors.title}
+              aria-describedby={errors.title ? 'query-title-error' : undefined}
               type="text"
               maxLength={150}
               className={styles.input}
@@ -264,7 +255,7 @@ export function QueryFormModal({
               disabled={isSubmitting}
             />
             {errors.title && (
-              <span className={styles.errorMessage}>
+              <span className={styles.errorMessage} id="query-title-error" role="alert">
                 <AlertCircle size={14} /> {errors.title}
               </span>
             )}
@@ -277,6 +268,8 @@ export function QueryFormModal({
             </label>
             <select
               id="query-category"
+              aria-invalid={!!errors.category}
+              aria-describedby={errors.category ? 'query-category-error' : undefined}
               className={styles.select}
               value={category}
               onChange={handleCategoryChange}
@@ -294,7 +287,12 @@ export function QueryFormModal({
             </select>
 
             {isNewCategory && (
+              <>
+              <label htmlFor="query-new-category" className={styles.label}>Nama kategori baru</label>
               <input
+                id="query-new-category"
+                aria-invalid={!!errors.category}
+                aria-describedby={errors.category ? 'query-category-error' : undefined}
                 type="text"
                 className={`${styles.input} ${styles.customCategoryInput}`}
                 placeholder="Nama kategori baru"
@@ -303,9 +301,10 @@ export function QueryFormModal({
                 disabled={isSubmitting}
                 autoFocus
               />
+              </>
             )}
             {errors.category && (
-              <span className={styles.errorMessage}>
+              <span className={styles.errorMessage} id="query-category-error" role="alert">
                 <AlertCircle size={14} /> {errors.category}
               </span>
             )}
@@ -318,6 +317,8 @@ export function QueryFormModal({
             </label>
             <select
               id="query-installation"
+              aria-invalid={!!errors.installation}
+              aria-describedby={errors.installation ? 'query-installation-error' : undefined}
               className={styles.select}
               value={installation}
               onChange={handleInstallationChange}
@@ -332,7 +333,12 @@ export function QueryFormModal({
             </select>
 
             {isNewInstallation && (
+              <>
+              <label htmlFor="query-new-installation" className={styles.label}>Nama instalasi baru</label>
               <input
+                id="query-new-installation"
+                aria-invalid={!!errors.installation}
+                aria-describedby={errors.installation ? 'query-installation-error' : undefined}
                 type="text"
                 className={`${styles.input} ${styles.customCategoryInput}`}
                 placeholder="Nama instalasi baru (misal: Rawat Jalan, IGD, Farmasi)"
@@ -341,9 +347,10 @@ export function QueryFormModal({
                 disabled={isSubmitting}
                 autoFocus
               />
+              </>
             )}
             {errors.installation && (
-              <span className={styles.errorMessage}>
+              <span className={styles.errorMessage} id="query-installation-error" role="alert">
                 <AlertCircle size={14} /> {errors.installation}
               </span>
             )}
@@ -356,6 +363,8 @@ export function QueryFormModal({
             </label>
             <select
               id="query-type"
+              aria-invalid={!!errors.type}
+              aria-describedby={errors.type ? 'query-type-error' : undefined}
               className={styles.select}
               value={type}
               onChange={handleTypeChange}
@@ -370,7 +379,12 @@ export function QueryFormModal({
             </select>
 
             {isNewType && (
+              <>
+              <label htmlFor="query-new-type" className={styles.label}>Nama jenis baru</label>
               <input
+                id="query-new-type"
+                aria-invalid={!!errors.type}
+                aria-describedby={errors.type ? 'query-type-error' : undefined}
                 type="text"
                 className={`${styles.input} ${styles.customCategoryInput}`}
                 placeholder="Nama jenis baru (misal: Report, View)"
@@ -379,9 +393,10 @@ export function QueryFormModal({
                 disabled={isSubmitting}
                 autoFocus
               />
+              </>
             )}
             {errors.type && (
-              <span className={styles.errorMessage}>
+              <span className={styles.errorMessage} id="query-type-error" role="alert">
                 <AlertCircle size={14} /> {errors.type}
               </span>
             )}
@@ -408,6 +423,8 @@ export function QueryFormModal({
             </div>
             <textarea
               id="query-sql"
+              aria-invalid={!!errors.sqlQuery}
+              aria-describedby={errors.sqlQuery ? 'query-sql-error' : undefined}
               className={styles.textarea}
               placeholder="SELECT * FROM emr_view.mv_rawat_inap WHERE ..."
               value={sqlQuery}
@@ -416,7 +433,7 @@ export function QueryFormModal({
               spellCheck={false}
             />
             {errors.sqlQuery && (
-              <span className={styles.errorMessage}>
+              <span className={styles.errorMessage} id="query-sql-error" role="alert">
                 <AlertCircle size={14} /> {errors.sqlQuery}
               </span>
             )}
@@ -441,6 +458,6 @@ export function QueryFormModal({
           </div>
         </form>
       </div>
-    </div>
+    </Modal>
   );
 }

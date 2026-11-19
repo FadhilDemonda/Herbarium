@@ -1,15 +1,14 @@
 /* Skeleton */
 .skeletonCard {
-  background-color: #ffffff;
-  border: 1px solid #e4ded0;
-  border-radius: 16px;
+  background-color: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
   padding: 20px;
   display: flex;
   flex-direction: column;
   gap: 16px;
   position: relative;
   overflow: hidden;
-  box-shadow: 0 1px 3px 0 rgba(40, 30, 20, 0.04);
 }
 
 :global([data-theme="dark"]) .skeletonCard {
@@ -18,7 +17,7 @@
 }
 
 .skeletonBlock {
-  background-color: #f0ecdf;
+  background-color: var(--surface-2);
   border-radius: var(--radius-sm);
   position: relative;
   overflow: hidden;
@@ -95,7 +94,7 @@
   flex-direction: column;
   gap: 8px;
   padding-top: 6px;
-  border-top: 1px solid #f0ecdf;
+  border-top: 1px solid var(--border);
 }
 
 :global([data-theme="dark"]) .skeletonTables {
@@ -133,7 +132,7 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  border-top: 1px solid #f0ecdf;
+  border-top: 1px solid var(--border);
   padding-top: 14px;
   margin-top: 4px;
 }

@@ -1,34 +1,32 @@
 import { useState, useEffect } from 'react';
+import { Modal } from './Modal';
 import { AlertTriangle } from 'lucide-react';
 import styles from './DeleteConfirmDialog.module.css';
 
 export function DeleteConfirmDialog({ isOpen, onClose, onConfirm, query }) {
   const [isDeleting, setIsDeleting] = useState(false);
+  const [error, setError] = useState('');
 
-  useEffect(() => {
-    function handleKeyDown(e) {
-      if (e.key === 'Escape' && isOpen) {
-        onClose();
-      }
-    }
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isOpen, onClose]);
+  useEffect(() => { setError(''); }, [isOpen, query?.id]);
 
   if (!isOpen || !query) return null;
 
   const handleConfirm = async () => {
+    if (isDeleting) return;
     setIsDeleting(true);
+    setError('');
     try {
       await onConfirm(query.id);
       onClose();
+    } catch (err) {
+      setError(err.message || 'Gagal menghapus query. Coba lagi.');
     } finally {
       setIsDeleting(false);
     }
   };
 
   return (
-    <div className={styles.backdrop} onClick={onClose} role="dialog" aria-modal="true" aria-labelledby="delete-dialog-title">
+    <Modal isOpen={isOpen} onClose={onClose} className={styles.backdrop} labelledBy="delete-dialog-title" busy={isDeleting}>
       <div className={styles.modal} onClick={(e) => e.stopPropagation()}>
         <div className={styles.header}>
           <AlertTriangle size={24} />
@@ -42,6 +40,8 @@ export function DeleteConfirmDialog({ isOpen, onClose, onConfirm, query }) {
         <div className={styles.queryTitle} title={query.title}>
           {query.title}
         </div>
+
+        {error && <p className={styles.errorMessage} role="alert">{error}</p>}
 
         <div className={styles.footer}>
           <button
@@ -62,6 +62,6 @@ export function DeleteConfirmDialog({ isOpen, onClose, onConfirm, query }) {
           </button>
         </div>
       </div>
-    </div>
+    </Modal>
   );
 }
